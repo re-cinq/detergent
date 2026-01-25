@@ -80,6 +80,10 @@ RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/
   -a "export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhistory/.bash_history" \
   -x
 
+# Install OpenSpec CLI - spec-driven development for AI coding assistants
+# https://github.com/Fission-AI/OpenSpec
+RUN npm install -g @fission-ai/openspec@latest
+
 # Install Claude Code (native install - recommended)
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
