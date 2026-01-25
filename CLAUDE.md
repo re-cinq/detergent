@@ -22,7 +22,22 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 # Agent Instructions
 
-This project uses **bd** (beads) for issue tracking. Run `bd onboard` to get started.
+## Tool Responsibilities
+
+| Tool | Use For | Examples |
+|------|---------|----------|
+| **OpenSpec** | High-level specs & proposals | New capabilities, breaking changes, architecture decisions |
+| **Beads (bd)** | Issue tracking & work items | Bugs, tasks, features, discovered work |
+
+**Key distinction:**
+- OpenSpec `tasks.md` = implementation checklist scoped to one proposal
+- Beads issues = project-wide work tracking with dependencies
+
+**When proposing changes:** Use OpenSpec for the spec/design, then optionally create Beads issues for implementation tracking if the work spans multiple sessions or has dependencies.
+
+## Issue Tracking (Beads)
+
+This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
 
 ## Quick Reference
 
@@ -36,27 +51,27 @@ bd sync               # Sync with git
 
 ## Landing the Plane (Session Completion)
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+**When ending a work session**, you MUST complete ALL steps below.
 
 **MANDATORY WORKFLOW:**
 
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
+1. **File issues for remaining work** - Use `bd create` for anything that needs follow-up
 2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+3. **Update issue status** - Close finished work with `bd close <id>`
+4. **Commit & sync**:
    ```bash
-   git pull --rebase
+   git add <files>
    bd sync
-   git push
-   git status  # MUST show "up to date with origin"
+   git commit -m "..."
    ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
+5. **Push or merge** (check `bd prime` for branch-specific guidance):
+   - **Tracked branches**: `git push` (verify with `git status`)
+   - **Ephemeral branches**: Merge to main locally
+6. **Hand off** - Provide context for next session
 
 **CRITICAL RULES:**
 
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+- Work is NOT complete until changes are committed AND synced
+- NEVER stop mid-session without committing - that leaves work stranded
+- NEVER say "ready to commit when you are" - YOU must commit
+- Check `bd prime` for the current branch's workflow
