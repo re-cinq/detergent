@@ -26,9 +26,13 @@ Detergent is a daemon that orchestrates coding agents in a concern-based pipelin
 ### Testing Strategy
 - **Framework:** Ginkgo + Gomega, BDD/RSpec style
 - **Structure:** `Describe`/`Context`/`It` blocks with descriptive specs
-- **Unit tests:** Graph validation, config parsing
-- **Integration tests:** Mock agent, git operations
 - **Style:** Favor readability; specs should read like documentation
+
+### Development Approach
+- **Thin vertical slices:** Each increment delivers end-to-end functionality
+- **Outside-in:** Acceptance tests drive the compiled binary; no mocks at the boundary
+- **No horizontal layers:** Don't build "all config parsing" then "all git ops" - build working features
+- **Each slice = acceptance test:** Work isn't done until there's a passing test exercising the binary
 
 ### Git Workflow
 - Trunk-based development on `main`
