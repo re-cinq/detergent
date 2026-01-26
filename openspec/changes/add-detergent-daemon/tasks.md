@@ -60,6 +60,6 @@ Each slice delivers end-to-end user value with an acceptance test driving the bi
 - [x] 9.4 **Acceptance test:** config with A and B (independent), A's agent fails, verify B still processes
 
 ## Slice 10: Parallel concerns run in parallel
-- [ ] 10.1 Independent concerns (no dependency) execute concurrently
-- [ ] 10.2 Dependent concerns wait for upstream to complete
-- [ ] 10.3 **Acceptance test:** config with parallel branches, verify concurrent execution (timing or log interleaving)
+- [x] 10.1 Independent concerns (no dependency) execute concurrently
+- [x] 10.2 Dependent concerns wait for upstream to complete
+- [x] 10.3 **Acceptance test:** config with parallel branches, verify concurrent execution (timing or log interleaving)

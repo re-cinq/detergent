@@ -6,52 +6,71 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/fission-ai/detergent/internal/config"
 	gitops "github.com/fission-ai/detergent/internal/git"
 )
 
 // RunOnce processes each concern once and returns.
+// Independent concerns at the same level run in parallel.
 // Individual concern failures are logged but don't stop other concerns.
 func RunOnce(cfg *config.Config, repoDir string) error {
 	repo := gitops.NewRepo(repoDir)
 
-	// Process concerns in dependency order (roots first)
-	order := topologicalOrder(cfg)
-	failed := make(map[string]bool)
-	var firstErr error
+	levels := topologicalLevels(cfg)
+	failed := &failedSet{m: make(map[string]bool)}
 
-	for _, concern := range order {
-		// Skip if an upstream concern failed (its output may be stale)
-		if shouldSkip(cfg, concern, failed) {
-			fmt.Fprintf(os.Stderr, "skipping %s: upstream concern failed\n", concern.Name)
-			continue
-		}
-
-		if err := processConcern(cfg, repo, repoDir, concern); err != nil {
-			fmt.Fprintf(os.Stderr, "concern %s failed: %s\n", concern.Name, err)
-			failed[concern.Name] = true
-			if firstErr == nil {
-				firstErr = fmt.Errorf("concern %s: %w", concern.Name, err)
+	for _, level := range levels {
+		if len(level) == 1 {
+			// Single concern: run directly (no goroutine overhead)
+			c := level[0]
+			if failed.has(c.Watches) {
+				fmt.Fprintf(os.Stderr, "skipping %s: upstream concern failed\n", c.Name)
+				continue
 			}
-			// Don't advance last-seen (handled by not reaching SetLastSeen in processConcern)
-			continue
+			if err := processConcern(cfg, repo, repoDir, c); err != nil {
+				fmt.Fprintf(os.Stderr, "concern %s failed: %s\n", c.Name, err)
+				failed.set(c.Name)
+			}
+		} else {
+			// Multiple independent concerns: run in parallel
+			var wg sync.WaitGroup
+			for _, c := range level {
+				if failed.has(c.Watches) {
+					fmt.Fprintf(os.Stderr, "skipping %s: upstream concern failed\n", c.Name)
+					continue
+				}
+				wg.Add(1)
+				go func(concern config.Concern) {
+					defer wg.Done()
+					if err := processConcern(cfg, repo, repoDir, concern); err != nil {
+						fmt.Fprintf(os.Stderr, "concern %s failed: %s\n", concern.Name, err)
+						failed.set(concern.Name)
+					}
+				}(c)
+			}
+			wg.Wait()
 		}
 	}
-	return nil // individual failures are logged, not propagated
+	return nil
 }
 
-// shouldSkip returns true if any upstream dependency of this concern has failed.
-func shouldSkip(cfg *config.Config, concern config.Concern, failed map[string]bool) bool {
-	nameSet := make(map[string]bool)
-	for _, c := range cfg.Concerns {
-		nameSet[c.Name] = true
-	}
-	// If this concern watches another concern that failed, skip it
-	if nameSet[concern.Watches] && failed[concern.Watches] {
-		return true
-	}
-	return false
+type failedSet struct {
+	mu sync.Mutex
+	m  map[string]bool
+}
+
+func (f *failedSet) set(name string) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.m[name] = true
+}
+
+func (f *failedSet) has(name string) bool {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.m[name]
 }
 
 func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, concern config.Concern) error {
@@ -227,8 +246,9 @@ func fastForwardWorktree(worktreeDir, targetBranch string) error {
 	return nil
 }
 
-// topologicalOrder returns concerns sorted so that dependencies come before dependents.
-func topologicalOrder(cfg *config.Config) []config.Concern {
+// topologicalLevels groups concerns into levels for parallel execution.
+// Level 0 = roots (watch external branches), Level 1 = depends only on level 0, etc.
+func topologicalLevels(cfg *config.Config) [][]config.Concern {
 	nameSet := make(map[string]bool)
 	for _, c := range cfg.Concerns {
 		nameSet[c.Name] = true
@@ -239,27 +259,36 @@ func topologicalOrder(cfg *config.Config) []config.Concern {
 		byName[c.Name] = c
 	}
 
-	visited := make(map[string]bool)
-	var result []config.Concern
-
-	var visit func(name string)
-	visit = func(name string) {
-		if visited[name] {
-			return
+	// Compute level for each concern
+	levels := make(map[string]int)
+	var computeLevel func(name string) int
+	computeLevel = func(name string) int {
+		if l, ok := levels[name]; ok {
+			return l
 		}
-		visited[name] = true
-
 		c := byName[name]
-		// Visit dependency first (if it's another concern)
-		if nameSet[c.Watches] {
-			visit(c.Watches)
+		if !nameSet[c.Watches] {
+			levels[name] = 0
+			return 0
 		}
-
-		result = append(result, c)
+		l := computeLevel(c.Watches) + 1
+		levels[name] = l
+		return l
 	}
 
+	maxLevel := 0
 	for _, c := range cfg.Concerns {
-		visit(c.Name)
+		l := computeLevel(c.Name)
+		if l > maxLevel {
+			maxLevel = l
+		}
+	}
+
+	// Group by level
+	result := make([][]config.Concern, maxLevel+1)
+	for _, c := range cfg.Concerns {
+		l := levels[c.Name]
+		result[l] = append(result[l], c)
 	}
 
 	return result
