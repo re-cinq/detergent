@@ -42,10 +42,10 @@ Each slice delivers end-to-end user value with an acceptance test driving the bi
 - [x] 6.4 **Acceptance test:** start daemon, push commit, verify processing, send SIGINT, verify clean exit
 
 ## Slice 7: Concerns chain together
-- [ ] 7.1 Concern B watches concern A's output branch
-- [ ] 7.2 When A commits, B is triggered on next poll
-- [ ] 7.3 Context for B includes A's commit message (intent preservation)
-- [ ] 7.4 **Acceptance test:** config with A→B chain, push to source, verify both process in order
+- [x] 7.1 Concern B watches concern A's output branch
+- [x] 7.2 When A commits, B is triggered on next poll
+- [x] 7.3 Context for B includes A's commit message (intent preservation)
+- [x] 7.4 **Acceptance test:** config with A→B chain, push to source, verify both process in order
 
 ## Slice 8: No-change reviews leave a trace
 - [ ] 8.1 When agent makes no changes, fast-forward output branch
