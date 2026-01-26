@@ -20,8 +20,28 @@ type AgentConfig struct {
 }
 
 type Settings struct {
-	PollInterval time.Duration `yaml:"poll_interval"`
-	BranchPrefix string        `yaml:"branch_prefix"`
+	PollInterval Duration `yaml:"poll_interval"`
+	BranchPrefix string   `yaml:"branch_prefix"`
+}
+
+// Duration wraps time.Duration for YAML unmarshaling from strings like "10s".
+type Duration time.Duration
+
+func (d *Duration) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var s string
+	if err := unmarshal(&s); err != nil {
+		return err
+	}
+	parsed, err := time.ParseDuration(s)
+	if err != nil {
+		return err
+	}
+	*d = Duration(parsed)
+	return nil
+}
+
+func (d Duration) Duration() time.Duration {
+	return time.Duration(d)
 }
 
 type Concern struct {
@@ -49,7 +69,7 @@ func Parse(data []byte) (*Config, error) {
 		cfg.Settings.BranchPrefix = "detergent/"
 	}
 	if cfg.Settings.PollInterval == 0 {
-		cfg.Settings.PollInterval = 30 * time.Second
+		cfg.Settings.PollInterval = Duration(30 * time.Second)
 	}
 
 	return &cfg, nil

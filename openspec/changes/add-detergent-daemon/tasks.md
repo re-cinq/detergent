@@ -36,10 +36,10 @@ Each slice delivers end-to-end user value with an acceptance test driving the bi
 - [x] 5.4 **Acceptance test:** run once, then status, verify output reflects processed state
 
 ## Slice 6: I can run continuously
-- [ ] 6.1 `detergent run <config>` polls at configurable interval
-- [ ] 6.2 Detects new commits and processes them
-- [ ] 6.3 Runs until interrupted (SIGINT/SIGTERM)
-- [ ] 6.4 **Acceptance test:** start daemon, push commit, verify processing, send SIGINT, verify clean exit
+- [x] 6.1 `detergent run <config>` polls at configurable interval
+- [x] 6.2 Detects new commits and processes them
+- [x] 6.3 Runs until interrupted (SIGINT/SIGTERM)
+- [x] 6.4 **Acceptance test:** start daemon, push commit, verify processing, send SIGINT, verify clean exit
 
 ## Slice 7: Concerns chain together
 - [ ] 7.1 Concern B watches concern A's output branch

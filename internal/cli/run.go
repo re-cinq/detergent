@@ -1,9 +1,13 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
 
 	"github.com/fission-ai/detergent/internal/config"
 	"github.com/fission-ai/detergent/internal/engine"
@@ -36,7 +40,6 @@ var runCmd = &cobra.Command{
 			return fmt.Errorf("%d validation error(s)", len(errs))
 		}
 
-		// Resolve the repo directory (directory containing the config file)
 		configPath, err := filepath.Abs(args[0])
 		if err != nil {
 			return err
@@ -50,9 +53,41 @@ var runCmd = &cobra.Command{
 			return engine.RunOnce(cfg, repoDir)
 		}
 
-		// Daemon mode (Slice 6)
-		return fmt.Errorf("daemon mode not yet implemented, use --once")
+		return runDaemon(cfg, repoDir)
 	},
+}
+
+func runDaemon(cfg *config.Config, repoDir string) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	fmt.Printf("detergent daemon started (polling every %s)\n", cfg.Settings.PollInterval.Duration())
+
+	ticker := time.NewTicker(cfg.Settings.PollInterval.Duration())
+	defer ticker.Stop()
+
+	// Run immediately on startup
+	if err := engine.RunOnce(cfg, repoDir); err != nil {
+		fmt.Fprintf(os.Stderr, "poll error: %s\n", err)
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Println("detergent daemon stopped")
+			return nil
+		case sig := <-sigCh:
+			fmt.Printf("\nreceived %s, shutting down...\n", sig)
+			cancel()
+		case <-ticker.C:
+			if err := engine.RunOnce(cfg, repoDir); err != nil {
+				fmt.Fprintf(os.Stderr, "poll error: %s\n", err)
+			}
+		}
+	}
 }
 
 func findGitRoot(dir string) string {
