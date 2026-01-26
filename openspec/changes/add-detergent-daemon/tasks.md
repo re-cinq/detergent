@@ -48,10 +48,10 @@ Each slice delivers end-to-end user value with an acceptance test driving the bi
 - [x] 7.4 **Acceptance test:** config with A→B chain, push to source, verify both process in order
 
 ## Slice 8: No-change reviews leave a trace
-- [ ] 8.1 When agent makes no changes, fast-forward output branch
-- [ ] 8.2 Add git note to processed commits: `[CONCERN] Reviewed, no changes needed`
-- [ ] 8.3 Downstream concerns still see the commits (branch advanced)
-- [ ] 8.4 **Acceptance test:** agent returns no changes, verify fast-forward and git note exists
+- [x] 8.1 When agent makes no changes, fast-forward output branch
+- [x] 8.2 Add git note to processed commits: `[CONCERN] Reviewed, no changes needed`
+- [x] 8.3 Downstream concerns still see the commits (branch advanced)
+- [x] 8.4 **Acceptance test:** agent returns no changes, verify fast-forward and git note exists
 
 ## Slice 9: One failure doesn't stop everything
 - [ ] 9.1 If agent fails, log error and mark concern as failed

@@ -74,9 +74,23 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 		return fmt.Errorf("invoking agent: %w", err)
 	}
 
-	// Check for changes and commit
-	if err := commitChanges(wtPath, concern, head); err != nil {
+	// Check for changes and commit (or fast-forward if no changes)
+	changed, err := commitChanges(wtPath, concern, head)
+	if err != nil {
 		return fmt.Errorf("committing changes: %w", err)
+	}
+
+	if !changed {
+		// No changes: fast-forward the output branch via merge in worktree
+		if err := fastForwardWorktree(wtPath, watchedBranch); err != nil {
+			return fmt.Errorf("fast-forwarding %s: %w", outputBranch, err)
+		}
+		// Add git note to each processed commit
+		commits, _ := repo.CommitsBetween(lastSeen, head)
+		noteMsg := fmt.Sprintf("[%s] Reviewed, no changes needed", strings.ToUpper(concern.Name))
+		for _, hash := range commits {
+			repo.AddNote(hash, noteMsg)
+		}
 	}
 
 	// Update last-seen
@@ -140,25 +154,25 @@ func invokeAgent(cfg *config.Config, worktreeDir, context string) error {
 	return cmd.Run()
 }
 
-func commitChanges(worktreeDir string, concern config.Concern, triggeredBy string) error {
+func commitChanges(worktreeDir string, concern config.Concern, triggeredBy string) (bool, error) {
 	// Check if there are changes
 	cmd := exec.Command("git", "status", "--porcelain")
 	cmd.Dir = worktreeDir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	status := strings.TrimSpace(string(out))
 	if status == "" {
-		return nil // no changes
+		return false, nil // no changes
 	}
 
 	// Stage all changes
 	stageCmd := exec.Command("git", "add", "-A")
 	stageCmd.Dir = worktreeDir
 	if _, err := stageCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("staging changes: %w", err)
+		return false, fmt.Errorf("staging changes: %w", err)
 	}
 
 	// Build commit message
@@ -168,9 +182,19 @@ func commitChanges(worktreeDir string, concern config.Concern, triggeredBy strin
 	commitCmd := exec.Command("git", "commit", "-m", msg)
 	commitCmd.Dir = worktreeDir
 	if commitOut, err := commitCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("committing: %s: %w", string(commitOut), err)
+		return false, fmt.Errorf("committing: %s: %w", string(commitOut), err)
 	}
 
+	return true, nil
+}
+
+func fastForwardWorktree(worktreeDir, targetBranch string) error {
+	cmd := exec.Command("git", "merge", "--ff-only", targetBranch)
+	cmd.Dir = worktreeDir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("git merge --ff-only %s: %s: %w", targetBranch, strings.TrimSpace(string(out)), err)
+	}
 	return nil
 }
 

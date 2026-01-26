@@ -101,6 +101,23 @@ func (r *Repo) DiffForCommit(hash string) (string, error) {
 	return r.run("diff", hash+"~1", hash)
 }
 
+// FastForwardBranch updates a branch ref to point at a new commit (fast-forward).
+func (r *Repo) FastForwardBranch(branch, targetCommit string) error {
+	_, err := r.run("branch", "-f", branch, targetCommit)
+	return err
+}
+
+// AddNote adds a git note to a commit under the "detergent" namespace.
+func (r *Repo) AddNote(commit, message string) error {
+	_, err := r.run("notes", "--ref=detergent", "add", "-f", "-m", message, commit)
+	return err
+}
+
+// GetNote reads the git note for a commit under the "detergent" namespace.
+func (r *Repo) GetNote(commit string) (string, error) {
+	return r.run("notes", "--ref=detergent", "show", commit)
+}
+
 // WorktreePath returns the expected worktree path for a concern.
 func WorktreePath(repoDir, branchPrefix, concernName string) string {
 	return filepath.Join(repoDir, ".detergent", "worktrees", branchPrefix+concernName)
