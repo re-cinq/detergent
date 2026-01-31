@@ -25,6 +25,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   vim \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Install Go (required for building and testing)
+ARG GO_VERSION=1.24.2
+RUN ARCH=$(dpkg --print-architecture) && \
+  wget "https://go.dev/dl/go${GO_VERSION}.linux-${ARCH}.tar.gz" && \
+  tar -C /usr/local -xzf "go${GO_VERSION}.linux-${ARCH}.tar.gz" && \
+  rm "go${GO_VERSION}.linux-${ARCH}.tar.gz"
+ENV PATH=$PATH:/usr/local/go/bin
+
 # Ensure default node user has access to /usr/local/share
 RUN mkdir -p /usr/local/share/npm-global && \
   chown -R node:node /usr/local/share
@@ -61,7 +69,8 @@ USER node
 
 # Install global packages
 ENV NPM_CONFIG_PREFIX=/usr/local/share/npm-global
-ENV PATH=$PATH:/usr/local/share/npm-global/bin:/home/node/.local/bin
+ENV GOPATH=/home/node/go
+ENV PATH=$PATH:/usr/local/share/npm-global/bin:/home/node/.local/bin:/usr/local/go/bin:$GOPATH/bin
 
 # Set the default shell to zsh rather than sh
 ENV SHELL=/bin/zsh
