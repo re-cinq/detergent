@@ -64,13 +64,18 @@ func runDaemon(cfg *config.Config, repoDir string) error {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
+	// Create LogManager for daemon lifetime
+	logMgr := engine.NewLogManager()
+	defer logMgr.Close()
+
 	fmt.Printf("detergent daemon started (polling every %s)\n", cfg.Settings.PollInterval.Duration())
+	fmt.Printf("Agent logs: %s\n", engine.LogPath())
 
 	ticker := time.NewTicker(cfg.Settings.PollInterval.Duration())
 	defer ticker.Stop()
 
 	// Run immediately on startup
-	if err := engine.RunOnce(cfg, repoDir); err != nil {
+	if err := engine.RunOnceWithLogs(cfg, repoDir, logMgr); err != nil {
 		fmt.Fprintf(os.Stderr, "poll error: %s\n", err)
 	}
 
@@ -83,7 +88,7 @@ func runDaemon(cfg *config.Config, repoDir string) error {
 			fmt.Printf("\nreceived %s, shutting down...\n", sig)
 			cancel()
 		case <-ticker.C:
-			if err := engine.RunOnce(cfg, repoDir); err != nil {
+			if err := engine.RunOnceWithLogs(cfg, repoDir, logMgr); err != nil {
 				fmt.Fprintf(os.Stderr, "poll error: %s\n", err)
 			}
 		}

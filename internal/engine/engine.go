@@ -2,20 +2,84 @@ package engine
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/fission-ai/detergent/internal/config"
 	gitops "github.com/fission-ai/detergent/internal/git"
 )
 
+// LogManager manages per-concern log files for agent output.
+type LogManager struct {
+	mu    sync.Mutex
+	files map[string]*os.File
+}
+
+// NewLogManager creates a new LogManager instance.
+func NewLogManager() *LogManager {
+	return &LogManager{
+		files: make(map[string]*os.File),
+	}
+}
+
+// GetLogFile returns the log file for a concern, creating it if necessary.
+// Log files are stored in the system temp directory with the pattern detergent-<concern>.log.
+func (lm *LogManager) GetLogFile(concernName string) (*os.File, error) {
+	lm.mu.Lock()
+	defer lm.mu.Unlock()
+
+	if f, ok := lm.files[concernName]; ok {
+		return f, nil
+	}
+
+	logPath := filepath.Join(os.TempDir(), fmt.Sprintf("detergent-%s.log", concernName))
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("opening log file %s: %w", logPath, err)
+	}
+
+	lm.files[concernName] = f
+	return f, nil
+}
+
+// LogPath returns the log file path pattern for display purposes.
+func LogPath() string {
+	return filepath.Join(os.TempDir(), "detergent-<concern>.log")
+}
+
+// Close closes all open log files.
+func (lm *LogManager) Close() error {
+	lm.mu.Lock()
+	defer lm.mu.Unlock()
+
+	var firstErr error
+	for name, f := range lm.files {
+		if err := f.Close(); err != nil && firstErr == nil {
+			firstErr = fmt.Errorf("closing log file for %s: %w", name, err)
+		}
+	}
+	lm.files = make(map[string]*os.File)
+	return firstErr
+}
+
 // RunOnce processes each concern once and returns.
 // Independent concerns at the same level run in parallel.
 // Individual concern failures are logged but don't stop other concerns.
+// Creates a temporary LogManager that is closed after processing.
 func RunOnce(cfg *config.Config, repoDir string) error {
+	logMgr := NewLogManager()
+	defer logMgr.Close()
+	return RunOnceWithLogs(cfg, repoDir, logMgr)
+}
+
+// RunOnceWithLogs processes each concern once using the provided LogManager.
+// The LogManager is not closed; the caller is responsible for closing it.
+func RunOnceWithLogs(cfg *config.Config, repoDir string, logMgr *LogManager) error {
 	repo := gitops.NewRepo(repoDir)
 
 	levels := topologicalLevels(cfg)
@@ -29,7 +93,7 @@ func RunOnce(cfg *config.Config, repoDir string) error {
 				fmt.Fprintf(os.Stderr, "skipping %s: upstream concern failed\n", c.Name)
 				continue
 			}
-			if err := processConcern(cfg, repo, repoDir, c); err != nil {
+			if err := processConcern(cfg, repo, repoDir, c, logMgr); err != nil {
 				fmt.Fprintf(os.Stderr, "concern %s failed: %s\n", c.Name, err)
 				failed.set(c.Name)
 			}
@@ -44,7 +108,7 @@ func RunOnce(cfg *config.Config, repoDir string) error {
 				wg.Add(1)
 				go func(concern config.Concern) {
 					defer wg.Done()
-					if err := processConcern(cfg, repo, repoDir, concern); err != nil {
+					if err := processConcern(cfg, repo, repoDir, concern, logMgr); err != nil {
 						fmt.Fprintf(os.Stderr, "concern %s failed: %s\n", concern.Name, err)
 						failed.set(concern.Name)
 					}
@@ -73,7 +137,7 @@ func (f *failedSet) has(name string) bool {
 	return f.m[name]
 }
 
-func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, concern config.Concern) error {
+func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, concern config.Concern, logMgr *LogManager) error {
 	watchedBranch := resolveWatchedBranch(cfg, concern)
 
 	// Get current HEAD of watched branch
@@ -117,8 +181,20 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 		return fmt.Errorf("assembling context: %w", err)
 	}
 
+	// Get log file for this concern
+	logFile, err := logMgr.GetLogFile(concern.Name)
+	if err != nil {
+		return fmt.Errorf("getting log file: %w", err)
+	}
+
+	// Write commit context header to log file
+	header := fmt.Sprintf("--- Processing %s at %s ---\n", head, time.Now().UTC().Format(time.RFC3339))
+	if _, err := logFile.WriteString(header); err != nil {
+		return fmt.Errorf("writing log header: %w", err)
+	}
+
 	// Invoke agent in worktree
-	if err := invokeAgent(cfg, wtPath, context); err != nil {
+	if err := invokeAgent(cfg, wtPath, context, logFile); err != nil {
 		return fmt.Errorf("invoking agent: %w", err)
 	}
 
@@ -186,7 +262,7 @@ func assembleContext(repo *gitops.Repo, concern config.Concern, lastSeen, head s
 	return sb.String(), nil
 }
 
-func invokeAgent(cfg *config.Config, worktreeDir, context string) error {
+func invokeAgent(cfg *config.Config, worktreeDir, context string, output io.Writer) error {
 	// Write context to a temp file
 	contextFile := filepath.Join(worktreeDir, ".detergent-context")
 	if err := os.WriteFile(contextFile, []byte(context), 0644); err != nil {
@@ -197,8 +273,8 @@ func invokeAgent(cfg *config.Config, worktreeDir, context string) error {
 	args := append(cfg.Agent.Args, contextFile)
 	cmd := exec.Command(cfg.Agent.Command, args...)
 	cmd.Dir = worktreeDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stdout = output
+	cmd.Stderr = output
 	return cmd.Run()
 }
 
