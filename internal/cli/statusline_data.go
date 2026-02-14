@@ -72,7 +72,8 @@ type GraphEdge struct {
 	To   string `json:"to"`
 }
 
-func outputStatuslineData(cfg *config.Config, repoDir string) error {
+// gatherStatuslineData collects status data for all concerns without serializing.
+func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 	repo := gitops.NewRepo(repoDir)
 
 	nameSet := make(map[string]bool)
@@ -124,12 +125,15 @@ func outputStatuslineData(cfg *config.Config, repoDir string) error {
 		concerns = append(concerns, cd)
 	}
 
-	output := StatuslineOutput{
+	return StatuslineOutput{
 		Concerns: concerns,
 		Roots:    roots,
 		Graph:    graph,
 	}
+}
 
+func outputStatuslineData(cfg *config.Config, repoDir string) error {
+	output := gatherStatuslineData(cfg, repoDir)
 	data, err := json.Marshal(output)
 	if err != nil {
 		return err
