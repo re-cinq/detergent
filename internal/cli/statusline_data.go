@@ -49,9 +49,10 @@ var statuslineDataCmd = &cobra.Command{
 
 // StatuslineOutput is the top-level JSON blob for statusline rendering.
 type StatuslineOutput struct {
-	Concerns []ConcernData `json:"concerns"`
-	Roots    []string      `json:"roots"`
-	Graph    []GraphEdge   `json:"graph"`
+	Concerns     []ConcernData `json:"concerns"`
+	Roots        []string      `json:"roots"`
+	Graph        []GraphEdge   `json:"graph"`
+	BranchPrefix string        `json:"branch_prefix"`
 }
 
 // ConcernData represents one concern's status for statusline rendering.
@@ -126,9 +127,10 @@ func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 	}
 
 	return StatuslineOutput{
-		Concerns: concerns,
-		Roots:    roots,
-		Graph:    graph,
+		Concerns:     concerns,
+		Roots:        roots,
+		Graph:        graph,
+		BranchPrefix: cfg.Settings.BranchPrefix,
 	}
 }
 

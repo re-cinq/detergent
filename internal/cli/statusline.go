@@ -255,5 +255,53 @@ func renderGraph(data StatuslineOutput) string {
 		}
 	}
 
+	// Check if the chain is complete with results ready to rebase
+	if hint := rebaseHint(data, concerns, downstream); hint != "" {
+		sb.WriteString("\n")
+		sb.WriteString(hint)
+	}
+
 	return sb.String()
+}
+
+// rebaseHint returns a prompt to use /rebase if the concern chain is complete
+// with modifications ready to land. Returns "" if not applicable.
+func rebaseHint(data StatuslineOutput, concerns map[string]ConcernData, downstream map[string][]string) string {
+	if len(concerns) == 0 {
+		return ""
+	}
+
+	// Find terminal concerns (not in any downstream edge's From)
+	hasChildren := make(map[string]bool)
+	for from := range downstream {
+		hasChildren[from] = true
+	}
+	var terminals []string
+	for name := range concerns {
+		if !hasChildren[name] {
+			terminals = append(terminals, name)
+		}
+	}
+
+	// Only support linear chains (single terminal)
+	if len(terminals) != 1 {
+		return ""
+	}
+	terminal := terminals[0]
+
+	// All concerns must be idle
+	for _, c := range concerns {
+		if c.State == "running" || c.State == "failed" {
+			return ""
+		}
+	}
+
+	// Terminal must have produced modifications
+	tc := concerns[terminal]
+	if tc.LastResult != "modified" {
+		return ""
+	}
+
+	branch := data.BranchPrefix + terminal
+	return fmt.Sprintf("%suse /rebase %s to pick up latest changes%s", ansiDim, branch, ansiReset)
 }
