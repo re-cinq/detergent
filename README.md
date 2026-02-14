@@ -58,6 +58,12 @@ detergent run detergent.yaml
 
 # Check status of each concern
 detergent status detergent.yaml
+
+# Live-updating status (like watch)
+detergent status -f detergent.yaml
+
+# Install Claude Code integration (statusline + skills)
+detergent install
 ```
 
 ## How It Works
@@ -68,6 +74,29 @@ detergent status detergent.yaml
 4. Agent changes are committed with `[CONCERN]` tags and `Triggered-By:` trailers
 5. If no changes needed, a git note records the review
 6. Downstream concerns see upstream commits and can build on them
+
+## Claude Code Integration
+
+`detergent install` sets up:
+
+- **Statusline** — shows the concern pipeline in Claude Code's status bar:
+  ```
+  main ─── security ✓ ── docs ⟳ ── style ·
+  ```
+- **Skills** — adds `/rebase` for landing concern branch changes
+
+### Statusline Symbols
+
+| Symbol | Meaning |
+|--------|---------|
+| `◎` | Change detected |
+| `⟳` | Agent running / committing |
+| `◯` | Pending (behind HEAD) |
+| `✗` | Failed |
+| `⊘` | Skipped |
+| `*` | Done, produced modifications |
+| `✓` | Done, no changes needed |
+| `·` | Never run |
 
 ## Git Conventions
 
