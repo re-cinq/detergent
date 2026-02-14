@@ -1,5 +1,6 @@
 agent:
-  command: "true"
+  command: claude
+  args: ["-p"]
 
 settings:
   poll_interval: 5s
@@ -10,4 +11,4 @@ concerns:
     prompt: "Review for security vulnerabilities"
   - name: docs
     watches: security
-    prompt: "Update documentation for changes"
+    prompt: "Ensure README is up to date with latest features. Commit any changes to the README, but don't change any other files and do not push."
