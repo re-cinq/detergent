@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/fission-ai/detergent/internal/config"
 	"github.com/fission-ai/detergent/internal/engine"
 	"github.com/spf13/cobra"
 )
@@ -26,7 +25,7 @@ var logsCmd = &cobra.Command{
 	Short: "Show agent logs for a concern",
 	Args:  cobra.ExactArgs(2),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load(args[0])
+		cfg, err := loadAndValidateConfig(args[0])
 		if err != nil {
 			return err
 		}

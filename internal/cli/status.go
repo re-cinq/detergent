@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -33,27 +32,14 @@ var statusCmd = &cobra.Command{
 	Short: "Show the status of each concern",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load(args[0])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-			return err
-		}
-
-		errs := config.Validate(cfg)
-		if len(errs) > 0 {
-			for _, e := range errs {
-				fmt.Fprintf(os.Stderr, "Error: %s\n", e)
-			}
-			return fmt.Errorf("%d validation error(s)", len(errs))
-		}
-
-		configPath, err := filepath.Abs(args[0])
+		cfg, err := loadAndValidateConfig(args[0])
 		if err != nil {
 			return err
 		}
-		repoDir := findGitRoot(filepath.Dir(configPath))
-		if repoDir == "" {
-			return fmt.Errorf("could not find git repository root")
+
+		repoDir, err := resolveRepo(args[0])
+		if err != nil {
+			return err
 		}
 
 		if statusFollow {

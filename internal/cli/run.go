@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
@@ -26,27 +25,14 @@ var runCmd = &cobra.Command{
 	Short: "Run the detergent daemon",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load(args[0])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
-			return err
-		}
-
-		errs := config.Validate(cfg)
-		if len(errs) > 0 {
-			for _, e := range errs {
-				fmt.Fprintf(os.Stderr, "Error: %s\n", e)
-			}
-			return fmt.Errorf("%d validation error(s)", len(errs))
-		}
-
-		configPath, err := filepath.Abs(args[0])
+		cfg, err := loadAndValidateConfig(args[0])
 		if err != nil {
 			return err
 		}
-		repoDir := findGitRoot(filepath.Dir(configPath))
-		if repoDir == "" {
-			return fmt.Errorf("could not find git repository root from %s", filepath.Dir(configPath))
+
+		repoDir, err := resolveRepo(args[0])
+		if err != nil {
+			return err
 		}
 
 		if runOnce {
@@ -92,18 +78,5 @@ func runDaemon(cfg *config.Config, repoDir string) error {
 				fmt.Fprintf(os.Stderr, "poll error: %s\n", err)
 			}
 		}
-	}
-}
-
-func findGitRoot(dir string) string {
-	for {
-		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
-			return dir
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return ""
-		}
-		dir = parent
 	}
 }

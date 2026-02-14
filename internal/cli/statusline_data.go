@@ -3,8 +3,6 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/fission-ai/detergent/internal/config"
 	"github.com/fission-ai/detergent/internal/engine"
@@ -21,26 +19,14 @@ var statuslineDataCmd = &cobra.Command{
 	Short: "Output JSON status data for all concerns (for statusline rendering)",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load(args[0])
+		cfg, err := loadAndValidateConfig(args[0])
 		if err != nil {
 			return err
 		}
 
-		errs := config.Validate(cfg)
-		if len(errs) > 0 {
-			for _, e := range errs {
-				fmt.Fprintf(os.Stderr, "Error: %s\n", e)
-			}
-			return fmt.Errorf("%d validation error(s)", len(errs))
-		}
-
-		configPath, err := filepath.Abs(args[0])
+		repoDir, err := resolveRepo(args[0])
 		if err != nil {
 			return err
-		}
-		repoDir := findGitRoot(filepath.Dir(configPath))
-		if repoDir == "" {
-			return fmt.Errorf("could not find git repository root")
 		}
 
 		return outputStatuslineData(cfg, repoDir)

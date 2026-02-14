@@ -2,9 +2,7 @@ package cli
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/fission-ai/detergent/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -17,18 +15,8 @@ var validateCmd = &cobra.Command{
 	Short: "Validate a detergent configuration file",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load(args[0])
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		if _, err := loadAndValidateConfig(args[0]); err != nil {
 			return err
-		}
-
-		errs := config.Validate(cfg)
-		if len(errs) > 0 {
-			for _, e := range errs {
-				fmt.Fprintf(os.Stderr, "Error: %s\n", e)
-			}
-			return fmt.Errorf("%d validation error(s)", len(errs))
 		}
 
 		fmt.Println("Configuration is valid.")
