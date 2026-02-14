@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -72,7 +73,7 @@ func followStatus(cfg *config.Config, repoDir string) error {
 
 	for {
 		var buf bytes.Buffer
-		if err := renderStatus(&buf, cfg, repoDir); err != nil {
+		if err := renderStatus(&buf, cfg, repoDir, true); err != nil {
 			fmt.Fprintf(os.Stderr, "\nerror: %s\n", err)
 		}
 		output := buf.String()
@@ -94,10 +95,10 @@ func followStatus(cfg *config.Config, repoDir string) error {
 }
 
 func showStatus(cfg *config.Config, repoDir string) error {
-	return renderStatus(os.Stdout, cfg, repoDir)
+	return renderStatus(os.Stdout, cfg, repoDir, false)
 }
 
-func renderStatus(w io.Writer, cfg *config.Config, repoDir string) error {
+func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool) error {
 	repo := gitops.NewRepo(repoDir)
 	nameSet := make(map[string]bool)
 	for _, c := range cfg.Concerns {
@@ -106,6 +107,8 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string) error {
 
 	fmt.Fprintln(w, "Concern Status")
 	fmt.Fprintln(w, "──────────────────────────────────────")
+
+	var activeConcerns []string
 
 	for _, c := range cfg.Concerns {
 		watchedBranch := c.Watches
@@ -126,12 +129,15 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string) error {
 			switch status.State {
 			case "change_detected":
 				fmt.Fprintf(w, "  ◎  %-20s  change detected at %s\n", c.Name, short(status.HeadAtStart))
+				activeConcerns = append(activeConcerns, c.Name)
 				continue
 			case "agent_running":
 				fmt.Fprintf(w, "  ⟳  %-20s  agent running (since %s)\n", c.Name, status.StartedAt)
+				activeConcerns = append(activeConcerns, c.Name)
 				continue
 			case "committing":
 				fmt.Fprintf(w, "  ⟳  %-20s  committing changes\n", c.Name)
+				activeConcerns = append(activeConcerns, c.Name)
 				continue
 			case "failed":
 				fmt.Fprintf(w, "  ✗  %-20s  failed: %s\n", c.Name, status.Error)
@@ -163,7 +169,35 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string) error {
 		}
 	}
 
+	// In follow mode, show last few log lines for active concerns
+	if showLogs && len(activeConcerns) > 0 {
+		for _, name := range activeConcerns {
+			logPath := engine.LogPathFor(name)
+			tail := readLastLines(logPath, 5)
+			if tail != "" {
+				fmt.Fprintf(w, "\n── %s logs ──\n%s", name, tail)
+			}
+		}
+	}
+
 	return nil
+}
+
+// readLastLines reads the last n lines from a file, returning "" if the file doesn't exist.
+func readLastLines(path string, n int) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	content := strings.TrimRight(string(data), "\n")
+	if content == "" {
+		return ""
+	}
+	lines := strings.Split(content, "\n")
+	if len(lines) > n {
+		lines = lines[len(lines)-n:]
+	}
+	return strings.Join(lines, "\n") + "\n"
 }
 
 func short(hash string) string {

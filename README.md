@@ -59,8 +59,14 @@ detergent run detergent.yaml
 # Check status of each concern
 detergent status detergent.yaml
 
-# Live-updating status (like watch)
+# Live-updating status (like watch, tails active agent logs)
 detergent status -f detergent.yaml
+
+# View agent logs for a concern
+detergent logs detergent.yaml security
+
+# Follow agent logs in real-time
+detergent logs -f detergent.yaml security
 
 # Install Claude Code integration (statusline + skills)
 detergent install

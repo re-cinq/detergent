@@ -52,6 +52,11 @@ func LogPath() string {
 	return filepath.Join(os.TempDir(), "detergent-<concern>.log")
 }
 
+// LogPathFor returns the log file path for a specific concern.
+func LogPathFor(concernName string) string {
+	return filepath.Join(os.TempDir(), fmt.Sprintf("detergent-%s.log", concernName))
+}
+
 // Close closes all open log files.
 func (lm *LogManager) Close() error {
 	lm.mu.Lock()
