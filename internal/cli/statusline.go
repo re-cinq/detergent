@@ -112,6 +112,8 @@ func statusSymbol(state, lastResult string) string {
 		return "✗"
 	case "skipped":
 		return "⊘"
+	case "pending":
+		return "◯"
 	case "idle":
 		switch lastResult {
 		case "modified":
@@ -135,6 +137,8 @@ func statusColor(state, lastResult string) string {
 		return ansiRed
 	case "skipped":
 		return ansiDim
+	case "pending":
+		return ansiYellow
 	case "idle":
 		switch lastResult {
 		case "modified":
