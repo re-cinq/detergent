@@ -183,6 +183,65 @@ concerns:
 		})
 	})
 
+	Context("after a noop run (caught up)", func() {
+		BeforeEach(func() {
+			writeFile(filepath.Join(repoDir, "detergent.yaml"), `
+agent:
+  command: "true"
+
+concerns:
+  - name: security
+    watches: main
+    prompt: "Security review"
+`)
+			cmd := exec.Command(binaryPath, "run", "--once", filepath.Join(repoDir, "detergent.yaml"))
+			out, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "run failed: %s", string(out))
+		})
+
+		It("shows checkmark for caught-up concern", func() {
+			cmd := exec.Command(binaryPath, "statusline")
+			cmd.Stdin = strings.NewReader(`{"cwd":"` + repoDir + `"}`)
+			output, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred())
+
+			text := stripANSI(string(output))
+			Expect(text).To(ContainSubstring("security ✓"))
+		})
+	})
+
+	Context("when a concern is behind HEAD (pending)", func() {
+		BeforeEach(func() {
+			writeFile(filepath.Join(repoDir, "detergent.yaml"), `
+agent:
+  command: "true"
+
+concerns:
+  - name: security
+    watches: main
+    prompt: "Security review"
+`)
+			cmd := exec.Command(binaryPath, "run", "--once", filepath.Join(repoDir, "detergent.yaml"))
+			out, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "run failed: %s", string(out))
+
+			// Add a new commit
+			writeFile(filepath.Join(repoDir, "new.txt"), "new\n")
+			runGit(repoDir, "add", "new.txt")
+			runGit(repoDir, "commit", "-m", "new commit")
+		})
+
+		It("shows pending symbol for behind-HEAD concern", func() {
+			cmd := exec.Command(binaryPath, "statusline")
+			cmd.Stdin = strings.NewReader(`{"cwd":"` + repoDir + `"}`)
+			output, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred())
+
+			text := stripANSI(string(output))
+			Expect(text).To(ContainSubstring("security ◯"))
+		})
+	})
+
 	Context("config discovery walks up directories", func() {
 		It("finds config in parent directory", func() {
 			writeFile(filepath.Join(repoDir, "detergent.yaml"), `

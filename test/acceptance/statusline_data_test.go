@@ -167,4 +167,98 @@ concerns:
 			Expect(result.Concerns[0].BehindHead).To(BeTrue())
 		})
 	})
+
+	Context("normalization: idle + caught up + no last_result", func() {
+		BeforeEach(func() {
+			configPath = filepath.Join(repoDir, "detergent.yaml")
+			writeFile(configPath, `
+agent:
+  command: "true"
+
+concerns:
+  - name: security
+    watches: main
+    prompt: "Security review"
+`)
+			// Run with "true" agent — sets idle state but no last_result
+			cmd := exec.Command(binaryPath, "run", "--once", configPath)
+			out, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "run failed: %s", string(out))
+		})
+
+		It("normalizes to noop when caught up", func() {
+			cmd := exec.Command(binaryPath, "statusline-data", configPath)
+			output, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred())
+
+			var result statuslineOutput
+			Expect(json.Unmarshal(output, &result)).To(Succeed())
+			Expect(result.Concerns[0].State).To(Equal("idle"))
+			Expect(result.Concerns[0].LastResult).To(Equal("noop"))
+		})
+	})
+
+	Context("normalization: idle + behind HEAD", func() {
+		BeforeEach(func() {
+			configPath = filepath.Join(repoDir, "detergent.yaml")
+			writeFile(configPath, `
+agent:
+  command: "true"
+
+concerns:
+  - name: security
+    watches: main
+    prompt: "Security review"
+`)
+			cmd := exec.Command(binaryPath, "run", "--once", configPath)
+			out, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred(), "run failed: %s", string(out))
+
+			// Add a new commit so security is behind HEAD
+			writeFile(filepath.Join(repoDir, "new.txt"), "new\n")
+			runGit(repoDir, "add", "new.txt")
+			runGit(repoDir, "commit", "-m", "new commit")
+		})
+
+		It("normalizes state to pending", func() {
+			cmd := exec.Command(binaryPath, "statusline-data", configPath)
+			output, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred())
+
+			var result statuslineOutput
+			Expect(json.Unmarshal(output, &result)).To(Succeed())
+			Expect(result.Concerns[0].State).To(Equal("pending"))
+		})
+	})
+
+	Context("stale PID detection", func() {
+		BeforeEach(func() {
+			configPath = filepath.Join(repoDir, "detergent.yaml")
+			writeFile(configPath, `
+agent:
+  command: "true"
+
+concerns:
+  - name: security
+    watches: main
+    prompt: "Security review"
+`)
+			// Write a fake status file with agent_running state and a dead PID
+			statusDir := filepath.Join(repoDir, ".detergent", "status")
+			Expect(os.MkdirAll(statusDir, 0755)).To(Succeed())
+			writeFile(filepath.Join(statusDir, "security.json"),
+				`{"state":"agent_running","started_at":"2025-01-01T00:00:00Z","head_at_start":"abc123","last_seen":"","pid":99999}`)
+		})
+
+		It("marks stale active state as failed", func() {
+			cmd := exec.Command(binaryPath, "statusline-data", configPath)
+			output, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred())
+
+			var result statuslineOutput
+			Expect(json.Unmarshal(output, &result)).To(Succeed())
+			Expect(result.Concerns[0].State).To(Equal("failed"))
+			Expect(result.Concerns[0].Error).To(ContainSubstring("no longer running"))
+		})
+	})
 })

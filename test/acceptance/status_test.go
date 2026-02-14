@@ -82,4 +82,44 @@ concerns:
 			Expect(string(output)).To(ContainSubstring(head[:8]))
 		})
 	})
+
+	Context("with a stale active state (dead PID)", func() {
+		It("shows stale status when process is dead", func() {
+			// Write a fake status file with agent_running state and a dead PID
+			statusDir := filepath.Join(repoDir, ".detergent", "status")
+			Expect(os.MkdirAll(statusDir, 0755)).To(Succeed())
+			writeFile(filepath.Join(statusDir, "security.json"),
+				`{"state":"agent_running","started_at":"2025-01-01T00:00:00Z","head_at_start":"abc123","last_seen":"","pid":99999}`)
+
+			cmd := exec.Command(binaryPath, "status", configPath)
+			output, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred())
+			out := string(output)
+			Expect(out).To(ContainSubstring("stale"))
+			Expect(out).To(ContainSubstring("99999"))
+		})
+	})
+
+	Context("with failed concern", func() {
+		It("shows failed status with error message", func() {
+			failConfigPath := filepath.Join(repoDir, "detergent.yaml")
+			writeFile(failConfigPath, `
+agent:
+  command: "sh"
+  args: ["-c", "exit 1"]
+
+concerns:
+  - name: security
+    watches: main
+    prompt: "This will fail"
+`)
+			cmd := exec.Command(binaryPath, "run", "--once", failConfigPath)
+			cmd.CombinedOutput() // ignore exit code
+
+			cmd2 := exec.Command(binaryPath, "status", failConfigPath)
+			output, err := cmd2.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(output)).To(ContainSubstring("failed"))
+		})
+	})
 })
