@@ -1,9 +1,12 @@
 agent:
   command: "true"
 
+settings:
+  poll_interval: 5s
+
 concerns:
   - name: security
-    watches: main
+    watches: master
     prompt: "Review for security vulnerabilities"
   - name: docs
     watches: security
