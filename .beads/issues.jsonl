@@ -1,0 +1,1 @@
+{"id":"detergent-0mo","title":"Change status --follow to only refresh when state changes to avoid flickering","status":"open","priority":2,"issue_type":"bug","owner":"daniel@ajps.limited","created_at":"2026-02-14T22:02:10.062297Z","created_by":"Daniel Jones","updated_at":"2026-02-14T22:02:10.062297Z"}
