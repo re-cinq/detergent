@@ -184,6 +184,26 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 		return nil // nothing new
 	}
 
+	// Check if all new commits have skip markers
+	if allCommitsSkipped(repo, lastSeen, head) {
+		// Advance last-seen so we don't re-check these commits
+		if err := SetLastSeen(repoDir, concern.Name, head); err != nil {
+			return fmt.Errorf("updating last-seen after skip: %w", err)
+		}
+		prevStatus, _ := ReadStatus(repoDir, concern.Name)
+		lastResult := ""
+		if prevStatus != nil {
+			lastResult = prevStatus.LastResult
+		}
+		WriteStatus(repoDir, concern.Name, &ConcernStatus{
+			State:      "idle",
+			LastSeen:   head,
+			LastResult: lastResult,
+			PID:        pid,
+		})
+		return nil
+	}
+
 	// Write change-detected status
 	startedAt := nowRFC3339()
 	WriteStatus(repoDir, concern.Name, &ConcernStatus{
@@ -470,6 +490,35 @@ func rebaseWorktree(worktreeDir, targetBranch string) error {
 		// Reset succeeded — branch now matches target, agent will redo work
 	}
 	return nil
+}
+
+// allCommitsSkipped returns true if every commit between lastSeen and head
+// contains a skip marker ([skip ci], [ci skip], [skip detergent], [detergent skip]).
+// Returns false if there are no commits or if any commit lacks a skip marker.
+func allCommitsSkipped(repo *gitops.Repo, lastSeen, head string) bool {
+	commits, err := repo.CommitsBetween(lastSeen, head)
+	if err != nil || len(commits) == 0 {
+		return false
+	}
+	for _, hash := range commits {
+		msg, err := repo.CommitMessage(hash)
+		if err != nil {
+			return false
+		}
+		if !hasSkipMarker(msg) {
+			return false
+		}
+	}
+	return true
+}
+
+// hasSkipMarker checks if a commit message contains a recognized skip marker.
+func hasSkipMarker(msg string) bool {
+	lower := strings.ToLower(msg)
+	return strings.Contains(lower, "[skip ci]") ||
+		strings.Contains(lower, "[ci skip]") ||
+		strings.Contains(lower, "[skip detergent]") ||
+		strings.Contains(lower, "[detergent skip]")
 }
 
 // topologicalLevels groups concerns into levels for parallel execution.
