@@ -87,6 +87,7 @@ func RunOnce(cfg *config.Config, repoDir string) error {
 // The LogManager is not closed; the caller is responsible for closing it.
 func RunOnceWithLogs(cfg *config.Config, repoDir string, logMgr *LogManager) error {
 	repo := gitops.NewRepo(repoDir)
+	repo.EnsureIdentity()
 
 	levels := topologicalLevels(cfg)
 	failed := &failedSet{m: make(map[string]bool)}

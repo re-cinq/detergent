@@ -86,6 +86,18 @@ func (r *Repo) AddNote(commit, message string) error {
 	return err
 }
 
+// EnsureIdentity sets user.name and user.email in the repo's local config
+// if they are not already resolvable (e.g. via global config or environment).
+// This prevents "Author identity unknown" errors in CI environments.
+func (r *Repo) EnsureIdentity() {
+	if _, err := r.run("config", "user.name"); err != nil {
+		_, _ = r.run("config", "user.name", "detergent")
+	}
+	if _, err := r.run("config", "user.email"); err != nil {
+		_, _ = r.run("config", "user.email", "detergent@localhost")
+	}
+}
+
 // WorktreePath returns the expected worktree path for a concern.
 func WorktreePath(repoDir, branchPrefix, concernName string) string {
 	return filepath.Join(repoDir, ".detergent", "worktrees", branchPrefix+concernName)
