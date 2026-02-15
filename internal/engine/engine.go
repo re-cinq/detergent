@@ -369,6 +369,7 @@ func assembleContext(repo *gitops.Repo, concern config.Concern, lastSeen, head s
 	}
 
 	var sb strings.Builder
+	sb.WriteString("You are running non-interactively. Do not ask questions or wait for confirmation. If something is unclear, make your best judgement and proceed.\n\n")
 	sb.WriteString("# Concern: " + concern.Name + "\n\n")
 	sb.WriteString("## Prompt\n\n")
 	sb.WriteString(concern.Prompt + "\n\n")
