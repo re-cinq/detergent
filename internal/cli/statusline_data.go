@@ -61,13 +61,18 @@ type GraphEdge struct {
 }
 
 // gatherStatuslineData collects status data for all concerns without serializing.
+// isConcernName returns true if name matches any concern in the config.
+func isConcernName(cfg *config.Config, name string) bool {
+	for _, c := range cfg.Concerns {
+		if c.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
 func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 	repo := gitops.NewRepo(repoDir)
-
-	nameSet := make(map[string]bool)
-	for _, c := range cfg.Concerns {
-		nameSet[c.Name] = true
-	}
 
 	concerns := make([]ConcernData, 0)
 	roots := make([]string, 0)
@@ -75,7 +80,7 @@ func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 
 	for _, c := range cfg.Concerns {
 		// Build graph edges
-		if nameSet[c.Watches] {
+		if isConcernName(cfg, c.Watches) {
 			graph = append(graph, GraphEdge{From: c.Watches, To: c.Name})
 		} else {
 			roots = append(roots, c.Name)
@@ -97,7 +102,7 @@ func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 
 			// Detect stale active states (process died)
 			if engine.IsActiveState(cd.State) && !engine.IsProcessAlive(status.PID) {
-				cd.State = "failed"
+				cd.State = engine.StateFailed
 				cd.Error = fmt.Sprintf("process %d no longer running", status.PID)
 			}
 		} else {
@@ -105,10 +110,7 @@ func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 		}
 
 		// Get HEAD of watched branch to determine if behind
-		watchedBranch := c.Watches
-		if nameSet[c.Watches] {
-			watchedBranch = cfg.Settings.BranchPrefix + c.Watches
-		}
+		watchedBranch := engine.ResolveWatchedBranch(cfg, c)
 		if head, err := repo.HeadCommit(watchedBranch); err == nil {
 			cd.HeadCommit = head
 			if cd.LastSeen != "" && cd.LastSeen != head {
@@ -117,12 +119,12 @@ func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 		}
 
 		// Normalize: idle + caught up + no last_result → noop
-		if cd.State == "idle" && cd.LastResult == "" && cd.LastSeen != "" && !cd.BehindHead {
-			cd.LastResult = "noop"
+		if cd.State == engine.StateIdle && cd.LastResult == "" && cd.LastSeen != "" && !cd.BehindHead {
+			cd.LastResult = engine.ResultNoop
 		}
 
 		// Normalize: idle + behind HEAD + previously ran → pending
-		if cd.State == "idle" && cd.BehindHead && cd.LastSeen != "" {
+		if cd.State == engine.StateIdle && cd.BehindHead && cd.LastSeen != "" {
 			cd.State = "pending"
 		}
 

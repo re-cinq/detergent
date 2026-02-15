@@ -31,8 +31,7 @@ var _ = Describe("agent output logging", func() {
 	})
 
 	AfterEach(func() {
-		exec.Command("git", "-C", repoDir, "worktree", "prune").Run()
-		os.RemoveAll(tmpDir)
+		cleanupTestRepo(repoDir, tmpDir)
 		// Clean up log files
 		os.Remove(filepath.Join(os.TempDir(), "detergent-security.log"))
 		os.Remove(filepath.Join(os.TempDir(), "detergent-style.log"))

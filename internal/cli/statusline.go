@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/re-cinq/detergent/internal/config"
+	"github.com/re-cinq/detergent/internal/engine"
 	"github.com/spf13/cobra"
 )
 
@@ -80,19 +81,7 @@ func resolveProjectDir(input []byte) string {
 
 // findDetergentConfig walks up from dir looking for detergent.yaml or detergent.yml.
 func findDetergentConfig(dir string) string {
-	for {
-		for _, name := range []string{"detergent.yaml", "detergent.yml"} {
-			p := filepath.Join(dir, name)
-			if _, err := os.Stat(p); err == nil {
-				return p
-			}
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return ""
-		}
-		dir = parent
-	}
+	return findFileUp(dir, []string{"detergent.yaml", "detergent.yml"})
 }
 
 // ANSI escape codes
@@ -108,25 +97,25 @@ const (
 
 func statusSymbol(state, lastResult string) string {
 	switch state {
-	case "change_detected":
+	case engine.StateChangeDetected:
 		return "◎"
-	case "agent_running":
+	case engine.StateAgentRunning:
 		return "⟳"
-	case "committing":
+	case engine.StateCommitting:
 		return "⟳"
 	case "running": // legacy
 		return "⟳"
-	case "failed":
+	case engine.StateFailed:
 		return "✗"
-	case "skipped":
+	case engine.StateSkipped:
 		return "⊘"
 	case "pending":
 		return "◯"
-	case "idle":
+	case engine.StateIdle:
 		switch lastResult {
-		case "modified":
+		case engine.ResultModified:
 			return "*"
-		case "noop":
+		case engine.ResultNoop:
 			return "✓"
 		}
 		return "·"
@@ -139,25 +128,25 @@ func statusSymbol(state, lastResult string) string {
 
 func statusColor(state, lastResult string) string {
 	switch state {
-	case "change_detected":
+	case engine.StateChangeDetected:
 		return ansiYellow
-	case "agent_running":
+	case engine.StateAgentRunning:
 		return ansiYellow
-	case "committing":
+	case engine.StateCommitting:
 		return ansiYellow
 	case "running": // legacy
 		return ansiYellow
-	case "failed":
+	case engine.StateFailed:
 		return ansiRed
-	case "skipped":
+	case engine.StateSkipped:
 		return ansiDim
 	case "pending":
 		return ansiYellow
-	case "idle":
+	case engine.StateIdle:
 		switch lastResult {
-		case "modified":
+		case engine.ResultModified:
 			return ansiCyan
-		case "noop":
+		case engine.ResultNoop:
 			return ansiGreen
 		}
 		return ansiDim
@@ -310,7 +299,7 @@ func rebaseHint(data StatuslineOutput, concerns map[string]ConcernData, downstre
 	// All concerns must be idle
 	for _, c := range concerns {
 		switch c.State {
-		case "change_detected", "agent_running", "committing", "running", "failed", "pending":
+		case engine.StateChangeDetected, engine.StateAgentRunning, engine.StateCommitting, "running", engine.StateFailed, "pending":
 			return ""
 		}
 	}
@@ -318,7 +307,7 @@ func rebaseHint(data StatuslineOutput, concerns map[string]ConcernData, downstre
 	// Any concern in the chain must have produced modifications
 	anyModified := false
 	for _, c := range concerns {
-		if c.LastResult == "modified" {
+		if c.LastResult == engine.ResultModified {
 			anyModified = true
 			break
 		}

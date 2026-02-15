@@ -46,9 +46,7 @@ concerns:
 	})
 
 	AfterEach(func() {
-		// Clean up worktrees before removing tmpDir
-		exec.Command("git", "-C", repoDir, "worktree", "prune").Run()
-		os.RemoveAll(tmpDir)
+		cleanupTestRepo(repoDir, tmpDir)
 	})
 
 	It("exits with code 0", func() {

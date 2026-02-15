@@ -10,6 +10,22 @@ import (
 	"time"
 )
 
+// State constants
+const (
+	StateIdle           = "idle"
+	StateChangeDetected = "change_detected"
+	StateAgentRunning   = "agent_running"
+	StateCommitting     = "committing"
+	StateFailed         = "failed"
+	StateSkipped        = "skipped"
+)
+
+// Result constants
+const (
+	ResultNoop     = "noop"
+	ResultModified = "modified"
+)
+
 // stateDir returns the state directory path for a repo.
 func stateDir(repoDir string) string {
 	return filepath.Join(repoDir, ".detergent", "state")
@@ -83,7 +99,7 @@ func nowRFC3339() string {
 // IsActiveState returns true if the state represents an in-progress operation.
 func IsActiveState(state string) bool {
 	switch state {
-	case "change_detected", "agent_running", "committing", "running":
+	case StateChangeDetected, StateAgentRunning, StateCommitting, "running":
 		return true
 	}
 	return false

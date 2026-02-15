@@ -47,8 +47,7 @@ concerns:
 	})
 
 	AfterEach(func() {
-		exec.Command("git", "-C", repoDir, "worktree", "prune").Run()
-		os.RemoveAll(tmpDir)
+		cleanupTestRepo(repoDir, tmpDir)
 	})
 
 	It("processes commits and exits cleanly on SIGINT", func() {

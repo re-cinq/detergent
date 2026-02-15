@@ -100,12 +100,7 @@ func RunOnceWithLogs(cfg *config.Config, repoDir string, logMgr *LogManager) err
 			// Single concern: run directly (no goroutine overhead)
 			c := level[0]
 			if failed.has(c.Watches) {
-				fmt.Fprintf(os.Stderr, "skipping %s: upstream concern failed\n", c.Name)
-				_ = WriteStatus(repoDir, c.Name, &ConcernStatus{
-					State: "skipped",
-					Error: "upstream concern failed",
-					PID:   os.Getpid(),
-				})
+				skipUpstreamFailed(repoDir, c.Name, os.Getpid())
 				continue
 			}
 			if err := processConcern(cfg, repo, repoDir, c, logMgr); err != nil {
@@ -117,12 +112,7 @@ func RunOnceWithLogs(cfg *config.Config, repoDir string, logMgr *LogManager) err
 			var wg sync.WaitGroup
 			for _, c := range level {
 				if failed.has(c.Watches) {
-					fmt.Fprintf(os.Stderr, "skipping %s: upstream concern failed\n", c.Name)
-					_ = WriteStatus(repoDir, c.Name, &ConcernStatus{
-						State: "skipped",
-						Error: "upstream concern failed",
-						PID:   os.Getpid(),
-					})
+					skipUpstreamFailed(repoDir, c.Name, os.Getpid())
 					continue
 				}
 				wg.Add(1)
@@ -159,7 +149,7 @@ func (f *failedSet) has(name string) bool {
 
 func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, concern config.Concern, logMgr *LogManager) error {
 	pid := os.Getpid()
-	watchedBranch := resolveWatchedBranch(cfg, concern)
+	watchedBranch := ResolveWatchedBranch(cfg, concern)
 
 	// Get current HEAD of watched branch
 	head, err := repo.HeadCommit(watchedBranch)
@@ -174,17 +164,7 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	}
 	if lastSeen == head {
 		// Nothing new — preserve last_result from previous run
-		prevStatus, _ := ReadStatus(repoDir, concern.Name)
-		lastResult := ""
-		if prevStatus != nil {
-			lastResult = prevStatus.LastResult
-		}
-		_ = WriteStatus(repoDir, concern.Name, &ConcernStatus{
-			State:      "idle",
-			LastSeen:   lastSeen,
-			LastResult: lastResult,
-			PID:        pid,
-		})
+		writeIdleStatus(repoDir, concern.Name, lastSeen, pid)
 		return nil // nothing new
 	}
 
@@ -194,24 +174,14 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 		if err := SetLastSeen(repoDir, concern.Name, head); err != nil {
 			return fmt.Errorf("updating last-seen after skip: %w", err)
 		}
-		prevStatus, _ := ReadStatus(repoDir, concern.Name)
-		lastResult := ""
-		if prevStatus != nil {
-			lastResult = prevStatus.LastResult
-		}
-		_ = WriteStatus(repoDir, concern.Name, &ConcernStatus{
-			State:      "idle",
-			LastSeen:   head,
-			LastResult: lastResult,
-			PID:        pid,
-		})
+		writeIdleStatus(repoDir, concern.Name, head, pid)
 		return nil
 	}
 
 	// Write change-detected status
 	startedAt := nowRFC3339()
 	_ = WriteStatus(repoDir, concern.Name, &ConcernStatus{
-		State:       "change_detected",
+		State:       StateChangeDetected,
 		StartedAt:   startedAt,
 		HeadAtStart: head,
 		LastSeen:    lastSeen,
@@ -271,7 +241,7 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 
 	// Write agent-started status
 	_ = WriteStatus(repoDir, concern.Name, &ConcernStatus{
-		State:       "agent_running",
+		State:       StateAgentRunning,
 		StartedAt:   startedAt,
 		HeadAtStart: head,
 		LastSeen:    lastSeen,
@@ -286,7 +256,7 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 
 	// Write agent-succeeded status
 	_ = WriteStatus(repoDir, concern.Name, &ConcernStatus{
-		State:       "committing",
+		State:       StateCommitting,
 		StartedAt:   startedAt,
 		HeadAtStart: head,
 		LastSeen:    lastSeen,
@@ -316,12 +286,12 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	}
 
 	// Write idle status with result
-	result := "noop"
+	result := ResultNoop
 	if changed {
-		result = "modified"
+		result = ResultModified
 	}
 	_ = WriteStatus(repoDir, concern.Name, &ConcernStatus{
-		State:       "idle",
+		State:       StateIdle,
 		LastResult:  result,
 		StartedAt:   startedAt,
 		CompletedAt: nowRFC3339(),
@@ -333,10 +303,44 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	return nil
 }
 
+// getLastResult retrieves the LastResult from the previous status, or "" if not found.
+func getLastResult(repoDir, concernName string) string {
+	prevStatus, _ := ReadStatus(repoDir, concernName)
+	if prevStatus != nil {
+		return prevStatus.LastResult
+	}
+	return ""
+}
+
+// writeIdleStatus writes an idle status, preserving the previous LastResult.
+func writeIdleStatus(repoDir, concernName, lastSeen string, pid int) {
+	_ = WriteStatus(repoDir, concernName, &ConcernStatus{
+		State:      StateIdle,
+		LastSeen:   lastSeen,
+		LastResult: getLastResult(repoDir, concernName),
+		PID:        pid,
+	})
+}
+
+// writeSkippedStatus writes a skipped status with the given error message.
+func writeSkippedStatus(repoDir, concernName, errorMsg string, pid int) {
+	_ = WriteStatus(repoDir, concernName, &ConcernStatus{
+		State: StateSkipped,
+		Error: errorMsg,
+		PID:   pid,
+	})
+}
+
+// skipUpstreamFailed logs and marks a concern as skipped due to upstream failure.
+func skipUpstreamFailed(repoDir, concernName string, pid int) {
+	fmt.Fprintf(os.Stderr, "skipping %s: upstream concern failed\n", concernName)
+	writeSkippedStatus(repoDir, concernName, "upstream concern failed", pid)
+}
+
 // processConcernFailed writes a failed status and returns the wrapped error.
 func processConcernFailed(repoDir, concernName, startedAt, head, lastSeen string, pid int, origErr, wrappedErr error) error {
 	_ = WriteStatus(repoDir, concernName, &ConcernStatus{
-		State:       "failed",
+		State:       StateFailed,
 		StartedAt:   startedAt,
 		CompletedAt: nowRFC3339(),
 		Error:       origErr.Error(),
@@ -347,7 +351,7 @@ func processConcernFailed(repoDir, concernName, startedAt, head, lastSeen string
 	return wrappedErr
 }
 
-func resolveWatchedBranch(cfg *config.Config, concern config.Concern) string {
+func ResolveWatchedBranch(cfg *config.Config, concern config.Concern) string {
 	// If the concern watches another concern, resolve to its output branch
 	for _, c := range cfg.Concerns {
 		if c.Name == concern.Watches {

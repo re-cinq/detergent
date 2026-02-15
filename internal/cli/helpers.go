@@ -42,8 +42,17 @@ func resolveRepo(configArg string) (string, error) {
 
 // findGitRoot walks up from dir looking for a .git directory.
 func findGitRoot(dir string) string {
+	return walkUpUntil(dir, func(d string) bool {
+		_, err := os.Stat(filepath.Join(d, ".git"))
+		return err == nil
+	})
+}
+
+// walkUpUntil walks up the directory tree from dir, calling check on each directory.
+// Returns the first directory where check returns true, or "" if none found.
+func walkUpUntil(dir string, check func(string) bool) string {
 	for {
-		if _, err := os.Stat(filepath.Join(dir, ".git")); err == nil {
+		if check(dir) {
 			return dir
 		}
 		parent := filepath.Dir(dir)
@@ -52,4 +61,28 @@ func findGitRoot(dir string) string {
 		}
 		dir = parent
 	}
+}
+
+// findFileUp walks up from dir looking for any of the given filenames.
+// Returns the full path to the first file found, or "" if none found.
+func findFileUp(dir string, filenames []string) string {
+	foundDir := walkUpUntil(dir, func(d string) bool {
+		for _, name := range filenames {
+			if _, err := os.Stat(filepath.Join(d, name)); err == nil {
+				return true
+			}
+		}
+		return false
+	})
+	if foundDir == "" {
+		return ""
+	}
+	// Return the full path to the first file that exists
+	for _, name := range filenames {
+		p := filepath.Join(foundDir, name)
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+	return ""
 }

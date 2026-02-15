@@ -38,8 +38,7 @@ var _ = Describe("failure isolation", func() {
 	})
 
 	AfterEach(func() {
-		exec.Command("git", "-C", repoDir, "worktree", "prune").Run()
-		os.RemoveAll(tmpDir)
+		cleanupTestRepo(repoDir, tmpDir)
 	})
 
 	Context("with two independent concerns where one fails", func() {
