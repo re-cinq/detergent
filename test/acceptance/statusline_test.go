@@ -28,8 +28,7 @@ var _ = Describe("detergent statusline", func() {
 	})
 
 	AfterEach(func() {
-		exec.Command("git", "-C", repoDir, "worktree", "prune").Run()
-		os.RemoveAll(tmpDir)
+		cleanupTestRepo(repoDir, tmpDir)
 	})
 
 	Context("with a chain config (no forks)", func() {

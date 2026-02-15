@@ -45,8 +45,7 @@ concerns:
 	})
 
 	AfterEach(func() {
-		exec.Command("git", "-C", repoDir, "worktree", "prune").Run()
-		os.RemoveAll(tmpDir)
+		cleanupTestRepo(repoDir, tmpDir)
 	})
 
 	It("processes both concerns in order after a single run --once", func() {

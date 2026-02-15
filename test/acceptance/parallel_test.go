@@ -29,8 +29,7 @@ var _ = Describe("parallel concern execution", func() {
 	})
 
 	AfterEach(func() {
-		exec.Command("git", "-C", repoDir, "worktree", "prune").Run()
-		os.RemoveAll(tmpDir)
+		cleanupTestRepo(repoDir, tmpDir)
 	})
 
 	Context("with two independent concerns that both watch main", func() {

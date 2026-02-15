@@ -41,8 +41,7 @@ concerns:
 	})
 
 	AfterEach(func() {
-		exec.Command("git", "-C", repoDir, "worktree", "prune").Run()
-		os.RemoveAll(tmpDir)
+		cleanupTestRepo(repoDir, tmpDir)
 	})
 
 	It("advances the output branch to match upstream via rebase", func() {

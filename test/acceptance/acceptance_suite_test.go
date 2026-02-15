@@ -1,6 +1,7 @@
 package acceptance_test
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -29,3 +30,9 @@ var _ = BeforeSuite(func() {
 	output, err := cmd.CombinedOutput()
 	Expect(err).NotTo(HaveOccurred(), "Failed to build binary: %s", string(output))
 })
+
+// cleanupTestRepo cleans up git worktrees and removes the temporary directory.
+func cleanupTestRepo(repoDir, tmpDir string) {
+	exec.Command("git", "-C", repoDir, "worktree", "prune").Run()
+	os.RemoveAll(tmpDir)
+}

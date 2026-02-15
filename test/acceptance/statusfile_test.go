@@ -40,8 +40,7 @@ var _ = Describe("status files", func() {
 	})
 
 	AfterEach(func() {
-		exec.Command("git", "-C", repoDir, "worktree", "prune").Run()
-		os.RemoveAll(tmpDir)
+		cleanupTestRepo(repoDir, tmpDir)
 	})
 
 	readStatus := func(concernName string) *concernStatus {
