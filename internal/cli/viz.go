@@ -27,7 +27,7 @@ var vizCmd = &cobra.Command{
 }
 
 type vizNode struct {
-	concern    config.Concern
+	watches    string
 	downstream []string
 }
 
@@ -39,7 +39,7 @@ func printGraph(cfg *config.Config) {
 
 	nodes := make(map[string]*vizNode)
 	for _, c := range cfg.Concerns {
-		nodes[c.Name] = &vizNode{concern: c}
+		nodes[c.Name] = &vizNode{watches: c.Watches}
 	}
 
 	// Build downstream edges: if B watches A, then A -> B
@@ -58,7 +58,7 @@ func printGraph(cfg *config.Config) {
 	}
 
 	for _, root := range roots {
-		fmt.Printf("[%s]\n", nodes[root].concern.Watches)
+		fmt.Printf("[%s]\n", nodes[root].watches)
 		printBranch(nodes, root, "", true)
 	}
 }
