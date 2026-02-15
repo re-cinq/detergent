@@ -6,8 +6,16 @@ Instead of cramming security, documentation, and style checks into one prompt, D
 
 ## Installation
 
+### Quick install (recommended)
+
 ```bash
-go install ./cmd/detergent
+curl -fsSL https://raw.githubusercontent.com/DanielJonesEB/detergent/master/scripts/install.sh | bash
+```
+
+### From source
+
+```bash
+go install github.com/fission-ai/detergent/cmd/detergent@latest
 ```
 
 ## Quick Start
@@ -124,6 +132,15 @@ detergent install
 - **Branches**: `detergent/{concern-name}` (configurable prefix)
 - **Commits**: `[SECURITY] Fix SQL injection in login` with `Triggered-By: abc123` trailer
 - **Notes**: `[SECURITY] Reviewed, no changes needed` when agent makes no changes
+
+## Development
+
+```bash
+make build    # Build binary (bin/detergent)
+make test     # Run acceptance tests
+make lint     # Run linter (requires golangci-lint)
+make fmt      # Format code
+```
 
 ## License
 
