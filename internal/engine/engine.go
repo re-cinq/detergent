@@ -2,15 +2,18 @@ package engine
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"syscall"
 	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/creack/pty"
 	"github.com/re-cinq/detergent/internal/config"
 	gitops "github.com/re-cinq/detergent/internal/git"
 )
@@ -405,10 +408,35 @@ func invokeAgent(cfg *config.Config, worktreeDir, context string, output io.Writ
 	args := append(cfg.Agent.Args, contextFile)
 	cmd := exec.Command(cfg.Agent.Command, args...)
 	cmd.Dir = worktreeDir
+
+	// Allocate a PTY for stdout/stderr so the agent sees a terminal and uses
+	// line buffering, enabling real-time log tailing via `status -f` / `logs -f`.
+	// Stdin stays as a regular pipe so the agent gets a proper EOF.
+	ptmx, pts, err := pty.Open()
+	if err != nil {
+		return fmt.Errorf("opening pty: %w", err)
+	}
+	defer ptmx.Close()
+
 	cmd.Stdin = strings.NewReader(context)
-	cmd.Stdout = output
-	cmd.Stderr = output
-	return cmd.Run()
+	cmd.Stdout = pts
+	cmd.Stderr = pts
+
+	if err := cmd.Start(); err != nil {
+		pts.Close()
+		return fmt.Errorf("starting agent: %w", err)
+	}
+	pts.Close() // close slave in parent; child inherited it
+
+	// Copy PTY output to the log file; ignore EIO at process exit
+	if _, err := io.Copy(output, ptmx); err != nil {
+		var pathErr *os.PathError
+		if !(errors.As(err, &pathErr) && pathErr.Err == syscall.EIO) {
+			return fmt.Errorf("reading agent output: %w", err)
+		}
+	}
+
+	return cmd.Wait()
 }
 
 // writePermissions writes a .claude/settings.json file in the worktree
