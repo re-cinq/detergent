@@ -74,9 +74,32 @@ func runDaemon(cfg *config.Config, repoDir string) error {
 			fmt.Printf("\nreceived %s, shutting down...\n", sig)
 			cancel()
 		case <-ticker.C:
+			cfg = reloadConfig(configPath, cfg, ticker)
 			if err := engine.RunOnceWithLogs(cfg, repoDir, logMgr); err != nil {
 				fmt.Fprintf(os.Stderr, "poll error: %s\n", err)
 			}
 		}
 	}
+}
+
+// reloadConfig attempts to reload and validate the config file.
+// If successful and the poll interval changed, the ticker is reset.
+// On any error, the previous config is returned unchanged.
+func reloadConfig(path string, prev *config.Config, ticker *time.Ticker) *config.Config {
+	newCfg, err := config.Load(path)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "config reload: %s (keeping previous config)\n", err)
+		return prev
+	}
+	if errs := config.Validate(newCfg); len(errs) > 0 {
+		fmt.Fprintf(os.Stderr, "config reload: invalid (%s) (keeping previous config)\n", errs[0])
+		return prev
+	}
+
+	if newCfg.Settings.PollInterval != prev.Settings.PollInterval {
+		ticker.Reset(newCfg.Settings.PollInterval.Duration())
+		fmt.Printf("config reloaded: poll interval changed to %s\n", newCfg.Settings.PollInterval.Duration())
+	}
+
+	return newCfg
 }
