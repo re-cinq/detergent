@@ -412,6 +412,11 @@ func invokeAgent(cfg *config.Config, worktreeDir, context string, output io.Writ
 	// Allocate a PTY for stdout/stderr so the agent sees a terminal and uses
 	// line buffering, enabling real-time log tailing via `status -f` / `logs -f`.
 	// Stdin stays as a regular pipe so the agent gets a proper EOF.
+	//
+	// NOTE: this works (verified by integration tests with Python proving
+	// real-time line-buffered output), but Claude Code batches its output
+	// internally regardless of TTY detection, so logs appear in chunks
+	// rather than streaming line-by-line.
 	ptmx, pts, err := pty.Open()
 	if err != nil {
 		return fmt.Errorf("opening pty: %w", err)
