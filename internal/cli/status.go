@@ -101,10 +101,6 @@ func showStatus(cfg *config.Config, repoDir string) error {
 
 func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool) error {
 	repo := gitops.NewRepo(repoDir)
-	nameSet := make(map[string]bool)
-	for _, c := range cfg.Concerns {
-		nameSet[c.Name] = true
-	}
 
 	fmt.Fprintln(w, "Concern Status")
 	fmt.Fprintln(w, "──────────────────────────────────────")
@@ -112,10 +108,7 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool
 	var activeConcerns []string
 
 	for _, c := range cfg.Concerns {
-		watchedBranch := c.Watches
-		if nameSet[c.Watches] {
-			watchedBranch = cfg.Settings.BranchPrefix + c.Watches
-		}
+		watchedBranch := engine.ResolveWatchedBranch(cfg, c)
 
 		status, _ := engine.ReadStatus(repoDir, c.Name)
 

@@ -149,7 +149,7 @@ func (f *failedSet) has(name string) bool {
 
 func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, concern config.Concern, logMgr *LogManager) error {
 	pid := os.Getpid()
-	watchedBranch := resolveWatchedBranch(cfg, concern)
+	watchedBranch := ResolveWatchedBranch(cfg, concern)
 
 	// Get current HEAD of watched branch
 	head, err := repo.HeadCommit(watchedBranch)
@@ -351,7 +351,7 @@ func processConcernFailed(repoDir, concernName, startedAt, head, lastSeen string
 	return wrappedErr
 }
 
-func resolveWatchedBranch(cfg *config.Config, concern config.Concern) string {
+func ResolveWatchedBranch(cfg *config.Config, concern config.Concern) string {
 	// If the concern watches another concern, resolve to its output branch
 	for _, c := range cfg.Concerns {
 		if c.Name == concern.Watches {

@@ -80,19 +80,7 @@ func resolveProjectDir(input []byte) string {
 
 // findDetergentConfig walks up from dir looking for detergent.yaml or detergent.yml.
 func findDetergentConfig(dir string) string {
-	for {
-		for _, name := range []string{"detergent.yaml", "detergent.yml"} {
-			p := filepath.Join(dir, name)
-			if _, err := os.Stat(p); err == nil {
-				return p
-			}
-		}
-		parent := filepath.Dir(dir)
-		if parent == dir {
-			return ""
-		}
-		dir = parent
-	}
+	return findFileUp(dir, []string{"detergent.yaml", "detergent.yml"})
 }
 
 // ANSI escape codes
