@@ -110,6 +110,8 @@ detergent install
 5. If no changes needed, a git note records the review
 6. Downstream concerns see upstream commits and can build on them
 
+**Note:** When running as a daemon, detergent automatically reloads `detergent.yaml` at the start of each poll cycle. Config changes take effect immediately without requiring a restart.
+
 ## Claude Code Integration
 
 `detergent install` sets up:
@@ -119,7 +121,7 @@ detergent install
   main ─── security ✓ ── docs ⟳ ── style ·
   ```
   - When on a terminal concern branch that's behind HEAD, displays a bold yellow warning: `⚠ use /rebase <branch> to pick up latest changes`
-- **Skills** — adds `/rebase` for rebasing concern branch changes onto their upstream
+- **Skills** — adds `/detergent-start` to start the daemon as a background task and `/rebase` for rebasing concern branch changes onto their upstream
 
 ### Statusline Symbols
 
@@ -139,6 +141,7 @@ detergent install
 - **Branches**: `detergent/{concern-name}` (configurable prefix)
 - **Commits**: `[SECURITY] Fix SQL injection in login` with `Triggered-By: abc123` trailer
 - **Notes**: `[SECURITY] Reviewed, no changes needed` when agent makes no changes
+- **Skipping processing**: Add `[skip ci]`, `[ci skip]`, `[skip detergent]`, or `[detergent skip]` to commit messages to prevent detergent from processing them
 
 ## Development
 
