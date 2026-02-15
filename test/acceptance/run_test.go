@@ -114,6 +114,67 @@ concerns:
 		Expect(string(stdinContent)).To(ContainSubstring("Review for security issues"))
 	})
 
+	It("writes permissions settings to worktree when configured", func() {
+		permConfigPath := filepath.Join(repoDir, "detergent-perms.yaml")
+		writeFile(permConfigPath, `
+agent:
+  command: "sh"
+  args: ["-c", "cat .claude/settings.json > settings-snapshot.txt"]
+
+settings:
+  branch_prefix: "detergent/"
+
+permissions:
+  allow:
+    - Edit
+    - Write
+    - "Bash(*)"
+
+concerns:
+  - name: security
+    watches: main
+    prompt: "Review for security issues"
+`)
+		cmd := exec.Command(binaryPath, "run", "--once", "--path", permConfigPath)
+		output, err := cmd.CombinedOutput()
+		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
+
+		// The agent captured the settings file - check it was written correctly
+		wtPath := filepath.Join(repoDir, ".detergent", "worktrees", "detergent", "security")
+		snapshot, err := os.ReadFile(filepath.Join(wtPath, "settings-snapshot.txt"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(snapshot)).To(ContainSubstring(`"allow"`))
+		Expect(string(snapshot)).To(ContainSubstring(`"Edit"`))
+		Expect(string(snapshot)).To(ContainSubstring(`"Write"`))
+		Expect(string(snapshot)).To(ContainSubstring(`"Bash(*)`))
+	})
+
+	It("does not write permissions when not configured", func() {
+		// Use the default config (no permissions block)
+		noPermConfigPath := filepath.Join(repoDir, "detergent-noperm.yaml")
+		writeFile(noPermConfigPath, `
+agent:
+  command: "sh"
+  args: ["-c", "test -f .claude/settings.json && echo EXISTS || echo MISSING"]
+
+settings:
+  branch_prefix: "detergent/"
+
+concerns:
+  - name: security
+    watches: main
+    prompt: "Review for security issues"
+`)
+		cmd := exec.Command(binaryPath, "run", "--once", "--path", noPermConfigPath)
+		output, err := cmd.CombinedOutput()
+		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
+
+		// Verify .claude/settings.json was NOT created in the worktree
+		wtPath := filepath.Join(repoDir, ".detergent", "worktrees", "detergent", "security")
+		_, err = os.Stat(filepath.Join(wtPath, ".claude", "settings.json"))
+		Expect(os.IsNotExist(err)).To(BeTrue(), "settings.json should not exist when permissions not configured")
+	})
+
 	It("is idempotent - running twice doesn't create duplicate commits", func() {
 		cmd1 := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 		out1, err := cmd1.CombinedOutput()

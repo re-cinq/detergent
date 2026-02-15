@@ -41,6 +41,18 @@ This creates a graph where:
 - `security` and `style` watch `main` (run in parallel)
 - `docs` watches `security` (runs after security completes)
 
+### Permissions
+
+If your agent is Claude Code, you can pre-approve tool permissions instead of using `--dangerously-skip-permissions`. Add an optional `permissions` block — detergent writes it as `.claude/settings.json` in each worktree before invoking the agent:
+
+```yaml
+permissions:
+  allow:
+    - Edit
+    - Write
+    - "Bash(*)"
+```
+
 ## Usage
 
 ```bash

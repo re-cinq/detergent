@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -361,6 +362,13 @@ func invokeAgent(cfg *config.Config, worktreeDir, context string, output io.Writ
 	}
 	defer os.Remove(contextFile)
 
+	// Write permissions settings if configured
+	if cfg.Permissions != nil {
+		if err := writePermissions(worktreeDir, cfg.Permissions); err != nil {
+			return fmt.Errorf("writing permissions: %w", err)
+		}
+	}
+
 	// Pass context file path as last arg, and pipe context to stdin
 	// so agents like `claude -p` that read from stdin work too
 	args := append(cfg.Agent.Args, contextFile)
@@ -370,6 +378,25 @@ func invokeAgent(cfg *config.Config, worktreeDir, context string, output io.Writ
 	cmd.Stdout = output
 	cmd.Stderr = output
 	return cmd.Run()
+}
+
+// writePermissions writes a .claude/settings.json file in the worktree
+// with the configured permissions, so Claude Code agents get pre-approved tools.
+func writePermissions(worktreeDir string, perms *config.Permissions) error {
+	claudeDir := filepath.Join(worktreeDir, ".claude")
+	if err := os.MkdirAll(claudeDir, 0755); err != nil {
+		return err
+	}
+
+	settings := map[string]interface{}{
+		"permissions": perms,
+	}
+	data, err := json.MarshalIndent(settings, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(filepath.Join(claudeDir, "settings.json"), append(data, '\n'), 0644)
 }
 
 func commitChanges(worktreeDir string, concern config.Concern, triggeredBy string) (bool, error) {

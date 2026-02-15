@@ -9,9 +9,17 @@ import (
 )
 
 type Config struct {
-	Agent    AgentConfig    `yaml:"agent"`
-	Settings Settings       `yaml:"settings"`
-	Concerns []Concern      `yaml:"concerns"`
+	Agent       AgentConfig  `yaml:"agent"`
+	Settings    Settings     `yaml:"settings"`
+	Concerns    []Concern    `yaml:"concerns"`
+	Permissions *Permissions `yaml:"permissions,omitempty"`
+}
+
+// Permissions mirrors the Claude Code .claude/settings.json permissions block.
+// When set, detergent writes this into each worktree before invoking the agent.
+type Permissions struct {
+	Allow []string `yaml:"allow" json:"allow"`
+	Deny  []string `yaml:"deny,omitempty" json:"deny,omitempty"`
 }
 
 type AgentConfig struct {
