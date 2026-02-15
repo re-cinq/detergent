@@ -108,28 +108,28 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool
 		if status != nil {
 			// Check for stale active states (process died)
 			if engine.IsActiveState(status.State) && !engine.IsProcessAlive(status.PID) {
-				fmt.Fprintf(w, "  ✗  %-20s  stale (process %d no longer running, was: %s)\n", c.Name, status.PID, status.State)
+				fmt.Fprintf(w, "  %s✗  %-20s  stale (process %d no longer running, was: %s)%s\n", ansiRed, c.Name, status.PID, status.State, ansiReset)
 				continue
 			}
 
 			switch status.State {
 			case "change_detected":
-				fmt.Fprintf(w, "  ◎  %-20s  change detected at %s\n", c.Name, short(status.HeadAtStart))
+				fmt.Fprintf(w, "  %s◎  %-20s  change detected at %s%s\n", ansiYellow, c.Name, short(status.HeadAtStart), ansiReset)
 				activeConcerns = append(activeConcerns, c.Name)
 				continue
 			case "agent_running":
-				fmt.Fprintf(w, "  ⟳  %-20s  agent running (since %s)\n", c.Name, status.StartedAt)
+				fmt.Fprintf(w, "  %s⟳  %-20s  agent running (since %s)%s\n", ansiYellow, c.Name, status.StartedAt, ansiReset)
 				activeConcerns = append(activeConcerns, c.Name)
 				continue
 			case "committing":
-				fmt.Fprintf(w, "  ⟳  %-20s  committing changes\n", c.Name)
+				fmt.Fprintf(w, "  %s⟳  %-20s  committing changes%s\n", ansiYellow, c.Name, ansiReset)
 				activeConcerns = append(activeConcerns, c.Name)
 				continue
 			case "failed":
-				fmt.Fprintf(w, "  ✗  %-20s  failed: %s\n", c.Name, status.Error)
+				fmt.Fprintf(w, "  %s✗  %-20s  failed: %s%s\n", ansiRed, c.Name, status.Error, ansiReset)
 				continue
 			case "skipped":
-				fmt.Fprintf(w, "  ⊘  %-20s  skipped: %s\n", c.Name, status.Error)
+				fmt.Fprintf(w, "  %s⊘  %-20s  skipped: %s%s\n", ansiDim, c.Name, status.Error, ansiReset)
 				continue
 			}
 		}
@@ -142,16 +142,16 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool
 		head, err := repo.HeadCommit(watchedBranch)
 		if err != nil {
 			// Branch might not exist yet
-			fmt.Fprintf(w, "  ◯  %-20s  (not started - watched branch %s not found)\n", c.Name, watchedBranch)
+			fmt.Fprintf(w, "  %s◯  %-20s  (not started - watched branch %s not found)%s\n", ansiDim, c.Name, watchedBranch, ansiReset)
 			continue
 		}
 
 		if lastSeen == "" {
-			fmt.Fprintf(w, "  ◯  %-20s  pending (never processed)\n", c.Name)
+			fmt.Fprintf(w, "  %s◯  %-20s  pending (never processed)%s\n", ansiYellow, c.Name, ansiReset)
 		} else if lastSeen == head {
-			fmt.Fprintf(w, "  ✓  %-20s  caught up at %s\n", c.Name, short(lastSeen))
+			fmt.Fprintf(w, "  %s✓  %-20s  caught up at %s%s\n", ansiGreen, c.Name, short(lastSeen), ansiReset)
 		} else {
-			fmt.Fprintf(w, "  ◯  %-20s  pending (last: %s, head: %s)\n", c.Name, short(lastSeen), short(head))
+			fmt.Fprintf(w, "  %s◯  %-20s  pending (last: %s, head: %s)%s\n", ansiYellow, c.Name, short(lastSeen), short(head), ansiReset)
 		}
 	}
 
