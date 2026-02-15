@@ -102,3 +102,51 @@ func (r *Repo) EnsureIdentity() {
 func WorktreePath(repoDir, branchPrefix, concernName string) string {
 	return filepath.Join(repoDir, ".detergent", "worktrees", branchPrefix+concernName)
 }
+
+// HasChanges checks if there are any uncommitted changes in the worktree.
+func (r *Repo) HasChanges() (bool, error) {
+	out, err := r.run("status", "--porcelain")
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(out) != "", nil
+}
+
+// StageAll stages all changes (including untracked files) in the worktree.
+func (r *Repo) StageAll() error {
+	_, err := r.run("add", "-A")
+	return err
+}
+
+// Commit creates a commit with the given message.
+func (r *Repo) Commit(message string) error {
+	_, err := r.run("commit", "-m", message)
+	return err
+}
+
+// Rebase rebases the current branch onto targetBranch.
+// If conflicts occur, aborts the rebase and hard resets to targetBranch.
+func (r *Repo) Rebase(targetBranch string) error {
+	// Abort any stale in-progress rebase from a previous interrupted run.
+	abortCmd := exec.Command("git", "rebase", "--abort")
+	abortCmd.Dir = r.Dir
+	_, _ = abortCmd.CombinedOutput() // ignore error — fails if no rebase in progress
+
+	_, err := r.run("rebase", targetBranch)
+	if err != nil {
+		// Rebase conflict — abort and reset to target branch.
+		// Concern branches are auto-generated; stale commits that
+		// conflict with upstream should be discarded so the agent
+		// can regenerate from a clean base.
+		abort := exec.Command("git", "rebase", "--abort")
+		abort.Dir = r.Dir
+		_, _ = abort.CombinedOutput()
+
+		_, resetErr := r.run("reset", "--hard", targetBranch)
+		if resetErr != nil {
+			return fmt.Errorf("git rebase %s failed and reset also failed: %w", targetBranch, resetErr)
+		}
+		// Reset succeeded — branch now matches target, agent will redo work
+	}
+	return nil
+}

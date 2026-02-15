@@ -15,16 +15,7 @@ var _ = Describe("failure isolation", func() {
 	var configPath string
 
 	BeforeEach(func() {
-		var err error
-		tmpDir, err = os.MkdirTemp("", "detergent-failure-*")
-		Expect(err).NotTo(HaveOccurred())
-
-		repoDir = filepath.Join(tmpDir, "repo")
-		runGit(tmpDir, "init", repoDir)
-		runGit(repoDir, "checkout", "-b", "main")
-		writeFile(filepath.Join(repoDir, "hello.txt"), "hello\n")
-		runGit(repoDir, "add", "hello.txt")
-		runGit(repoDir, "commit", "-m", "initial commit")
+		tmpDir, repoDir = setupTestRepo("detergent-failure-*")
 
 		// Write a failing agent script and a succeeding one
 		writeFile(filepath.Join(repoDir, "fail-agent.sh"), "#!/bin/sh\nexit 1\n")

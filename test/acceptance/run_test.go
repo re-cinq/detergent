@@ -15,18 +15,7 @@ var _ = Describe("detergent run --once", func() {
 	var configPath string
 
 	BeforeEach(func() {
-		var err error
-		tmpDir, err = os.MkdirTemp("", "detergent-test-*")
-		Expect(err).NotTo(HaveOccurred())
-
-		repoDir = filepath.Join(tmpDir, "repo")
-
-		// Initialize a git repo with an initial commit on main
-		runGit(tmpDir, "init", repoDir)
-		runGit(repoDir, "checkout", "-b", "main")
-		writeFile(filepath.Join(repoDir, "hello.txt"), "hello world\n")
-		runGit(repoDir, "add", "hello.txt")
-		runGit(repoDir, "commit", "-m", "initial commit")
+		tmpDir, repoDir = setupTestRepo("detergent-test-*")
 
 		// Write the config that uses a simple agent
 		configPath = filepath.Join(repoDir, "detergent.yaml")
@@ -190,32 +179,3 @@ concerns:
 		Expect(count2).To(Equal(count1))
 	})
 })
-
-func runGit(dir string, args ...string) {
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	cmd.Env = append(os.Environ(),
-		"GIT_AUTHOR_NAME=Test",
-		"GIT_AUTHOR_EMAIL=test@test.com",
-		"GIT_COMMITTER_NAME=Test",
-		"GIT_COMMITTER_EMAIL=test@test.com",
-	)
-	out, err := cmd.CombinedOutput()
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "git %v: %s", args, string(out))
-}
-
-func runGitOutput(dir string, args ...string) string {
-	cmd := exec.Command("git", args...)
-	cmd.Dir = dir
-	out, err := cmd.CombinedOutput()
-	ExpectWithOffset(1, err).NotTo(HaveOccurred(), "git %v: %s", args, string(out))
-	return string(out)
-}
-
-func writeFile(path, content string) {
-	dir := filepath.Dir(path)
-	err := os.MkdirAll(dir, 0755)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-	err = os.WriteFile(path, []byte(content), 0644)
-	ExpectWithOffset(1, err).NotTo(HaveOccurred())
-}

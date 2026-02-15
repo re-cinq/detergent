@@ -1,7 +1,6 @@
 package acceptance_test
 
 import (
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
@@ -16,16 +15,7 @@ var _ = Describe("concern chaining", func() {
 	var configPath string
 
 	BeforeEach(func() {
-		var err error
-		tmpDir, err = os.MkdirTemp("", "detergent-chain-*")
-		Expect(err).NotTo(HaveOccurred())
-
-		repoDir = filepath.Join(tmpDir, "repo")
-		runGit(tmpDir, "init", repoDir)
-		runGit(repoDir, "checkout", "-b", "main")
-		writeFile(filepath.Join(repoDir, "hello.txt"), "hello\n")
-		runGit(repoDir, "add", "hello.txt")
-		runGit(repoDir, "commit", "-m", "initial commit")
+		tmpDir, repoDir = setupTestRepo("detergent-chain-*")
 
 		// Config with A -> B chain: security watches main, docs watches security
 		configPath = filepath.Join(repoDir, "detergent.yaml")

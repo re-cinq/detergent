@@ -469,66 +469,33 @@ func writePermissions(worktreeDir string, perms *config.Permissions) error {
 }
 
 func commitChanges(worktreeDir string, concern config.Concern, triggeredBy string) (bool, error) {
-	// Check if there are changes
-	cmd := exec.Command("git", "status", "--porcelain")
-	cmd.Dir = worktreeDir
-	out, err := cmd.CombinedOutput()
+	repo := gitops.NewRepo(worktreeDir)
+
+	hasChanges, err := repo.HasChanges()
 	if err != nil {
 		return false, err
 	}
-
-	status := strings.TrimSpace(string(out))
-	if status == "" {
+	if !hasChanges {
 		return false, nil // no changes
 	}
 
-	// Stage all changes
-	stageCmd := exec.Command("git", "add", "-A")
-	stageCmd.Dir = worktreeDir
-	if _, err := stageCmd.CombinedOutput(); err != nil {
+	if err := repo.StageAll(); err != nil {
 		return false, fmt.Errorf("staging changes: %w", err)
 	}
 
-	// Build commit message
 	msg := fmt.Sprintf("[%s] Agent changes\n\nTriggered-By: %s",
 		strings.ToUpper(concern.Name), triggeredBy)
 
-	commitCmd := exec.Command("git", "commit", "-m", msg)
-	commitCmd.Dir = worktreeDir
-	if commitOut, err := commitCmd.CombinedOutput(); err != nil {
-		return false, fmt.Errorf("committing: %s: %w", string(commitOut), err)
+	if err := repo.Commit(msg); err != nil {
+		return false, fmt.Errorf("committing: %w", err)
 	}
 
 	return true, nil
 }
 
 func rebaseWorktree(worktreeDir, targetBranch string) error {
-	// Abort any stale in-progress rebase from a previous interrupted run.
-	abortCmd := exec.Command("git", "rebase", "--abort")
-	abortCmd.Dir = worktreeDir
-	_, _ = abortCmd.CombinedOutput() // ignore error — fails if no rebase in progress
-
-	cmd := exec.Command("git", "rebase", targetBranch)
-	cmd.Dir = worktreeDir
-	_, err := cmd.CombinedOutput()
-	if err != nil {
-		// Rebase conflict — abort and reset to target branch.
-		// Concern branches are auto-generated; stale commits that
-		// conflict with upstream should be discarded so the agent
-		// can regenerate from a clean base.
-		abort := exec.Command("git", "rebase", "--abort")
-		abort.Dir = worktreeDir
-		_, _ = abort.CombinedOutput()
-
-		reset := exec.Command("git", "reset", "--hard", targetBranch)
-		reset.Dir = worktreeDir
-		if resetOut, resetErr := reset.CombinedOutput(); resetErr != nil {
-			return fmt.Errorf("git rebase %s failed and reset also failed: %s: %w",
-				targetBranch, strings.TrimSpace(string(resetOut)), resetErr)
-		}
-		// Reset succeeded — branch now matches target, agent will redo work
-	}
-	return nil
+	repo := gitops.NewRepo(worktreeDir)
+	return repo.Rebase(targetBranch)
 }
 
 // allCommitsSkipped returns true if every commit between lastSeen and head

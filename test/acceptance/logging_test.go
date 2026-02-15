@@ -22,16 +22,7 @@ var _ = Describe("agent output logging", func() {
 		os.Remove(filepath.Join(os.TempDir(), "detergent-security.log"))
 		os.Remove(filepath.Join(os.TempDir(), "detergent-style.log"))
 
-		var err error
-		tmpDir, err = os.MkdirTemp("", "detergent-logging-*")
-		Expect(err).NotTo(HaveOccurred())
-
-		repoDir = filepath.Join(tmpDir, "repo")
-		runGit(tmpDir, "init", repoDir)
-		runGit(repoDir, "checkout", "-b", "main")
-		writeFile(filepath.Join(repoDir, "hello.txt"), "hello\n")
-		runGit(repoDir, "add", "hello.txt")
-		runGit(repoDir, "commit", "-m", "initial commit")
+		tmpDir, repoDir = setupTestRepo("detergent-logging-*")
 	})
 
 	AfterEach(func() {
