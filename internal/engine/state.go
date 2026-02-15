@@ -10,14 +10,14 @@ import (
 	"time"
 )
 
-// StateDir returns the state directory path for a repo.
-func StateDir(repoDir string) string {
+// stateDir returns the state directory path for a repo.
+func stateDir(repoDir string) string {
 	return filepath.Join(repoDir, ".detergent", "state")
 }
 
 // LastSeen returns the last-seen commit hash for a concern, or "" if none.
 func LastSeen(repoDir, concernName string) (string, error) {
-	path := filepath.Join(StateDir(repoDir), concernName)
+	path := filepath.Join(stateDir(repoDir), concernName)
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return "", nil
@@ -40,14 +40,14 @@ type ConcernStatus struct {
 	PID         int    `json:"pid"`                     // process ID
 }
 
-// StatusDir returns the status directory path for a repo.
-func StatusDir(repoDir string) string {
+// statusDir returns the status directory path for a repo.
+func statusDir(repoDir string) string {
 	return filepath.Join(repoDir, ".detergent", "status")
 }
 
 // WriteStatus writes a concern's status to its JSON status file.
 func WriteStatus(repoDir, concernName string, status *ConcernStatus) error {
-	dir := StatusDir(repoDir)
+	dir := statusDir(repoDir)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ func WriteStatus(repoDir, concernName string, status *ConcernStatus) error {
 
 // ReadStatus reads a concern's status from its JSON status file.
 func ReadStatus(repoDir, concernName string) (*ConcernStatus, error) {
-	path := filepath.Join(StatusDir(repoDir), concernName+".json")
+	path := filepath.Join(statusDir(repoDir), concernName+".json")
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return nil, nil
@@ -104,7 +104,7 @@ func IsProcessAlive(pid int) bool {
 
 // SetLastSeen records the last-seen commit hash for a concern.
 func SetLastSeen(repoDir, concernName, hash string) error {
-	dir := StateDir(repoDir)
+	dir := stateDir(repoDir)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}

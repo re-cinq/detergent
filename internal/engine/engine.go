@@ -28,9 +28,9 @@ func NewLogManager() *LogManager {
 	}
 }
 
-// GetLogFile returns the log file for a concern, creating it if necessary.
+// getLogFile returns the log file for a concern, creating it if necessary.
 // Log files are stored in the system temp directory with the pattern detergent-<concern>.log.
-func (lm *LogManager) GetLogFile(concernName string) (*os.File, error) {
+func (lm *LogManager) getLogFile(concernName string) (*os.File, error) {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()
 
@@ -231,7 +231,7 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	}
 
 	// Get log file for this concern
-	logFile, err := logMgr.GetLogFile(concern.Name)
+	logFile, err := logMgr.getLogFile(concern.Name)
 	if err != nil {
 		return processConcernFailed(repoDir, concern.Name, startedAt, head, lastSeen, pid, err,
 			fmt.Errorf("getting log file: %w", err))

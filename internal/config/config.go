@@ -64,10 +64,10 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("reading config: %w", err)
 	}
 
-	return Parse(data)
+	return parse(data)
 }
 
-func Parse(data []byte) (*Config, error) {
+func parse(data []byte) (*Config, error) {
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("parsing YAML: %w", err)
