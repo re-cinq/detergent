@@ -313,9 +313,15 @@ func rebaseHint(data StatuslineOutput, concerns map[string]ConcernData, downstre
 		}
 	}
 
-	// Terminal must have produced modifications
-	tc := concerns[terminal]
-	if tc.LastResult != "modified" {
+	// Any concern in the chain must have produced modifications
+	anyModified := false
+	for _, c := range concerns {
+		if c.LastResult == "modified" {
+			anyModified = true
+			break
+		}
+	}
+	if !anyModified {
 		return ""
 	}
 

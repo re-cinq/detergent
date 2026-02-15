@@ -73,7 +73,15 @@ func followStatus(cfg *config.Config, repoDir string) error {
 		} else {
 			fmt.Print("\033[H")
 		}
-		fmt.Printf("Every %.1fs: detergent status\n\n", statusInterval)
+		// Append clear-to-end-of-line escape to each line so shorter
+		// lines fully overwrite longer ones from previous renders.
+		lines := strings.Split(output, "\n")
+		for i := range lines {
+			lines[i] += "\033[K"
+		}
+		output = strings.Join(lines, "\n")
+
+		fmt.Printf("Every %.1fs: detergent status\033[K\n\033[K\n", statusInterval)
 		fmt.Print(output)
 		// Clear from cursor to end of screen to remove stale lines
 		fmt.Print("\033[J")

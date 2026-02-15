@@ -169,11 +169,17 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 		return err
 	}
 	if lastSeen == head {
-		// Nothing new — write idle status
+		// Nothing new — preserve last_result from previous run
+		prevStatus, _ := ReadStatus(repoDir, concern.Name)
+		lastResult := ""
+		if prevStatus != nil {
+			lastResult = prevStatus.LastResult
+		}
 		WriteStatus(repoDir, concern.Name, &ConcernStatus{
-			State:    "idle",
-			LastSeen: lastSeen,
-			PID:      pid,
+			State:      "idle",
+			LastSeen:   lastSeen,
+			LastResult: lastResult,
+			PID:        pid,
 		})
 		return nil // nothing new
 	}
@@ -436,11 +442,30 @@ func commitChanges(worktreeDir string, concern config.Concern, triggeredBy strin
 }
 
 func rebaseWorktree(worktreeDir, targetBranch string) error {
+	// Abort any stale in-progress rebase from a previous interrupted run.
+	abortCmd := exec.Command("git", "rebase", "--abort")
+	abortCmd.Dir = worktreeDir
+	abortCmd.CombinedOutput() // ignore error — fails if no rebase in progress
+
 	cmd := exec.Command("git", "rebase", targetBranch)
 	cmd.Dir = worktreeDir
-	out, err := cmd.CombinedOutput()
+	_, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("git rebase %s: %s: %w", targetBranch, strings.TrimSpace(string(out)), err)
+		// Rebase conflict — abort and reset to target branch.
+		// Concern branches are auto-generated; stale commits that
+		// conflict with upstream should be discarded so the agent
+		// can regenerate from a clean base.
+		abort := exec.Command("git", "rebase", "--abort")
+		abort.Dir = worktreeDir
+		abort.CombinedOutput()
+
+		reset := exec.Command("git", "reset", "--hard", targetBranch)
+		reset.Dir = worktreeDir
+		if resetOut, resetErr := reset.CombinedOutput(); resetErr != nil {
+			return fmt.Errorf("git rebase %s failed and reset also failed: %s: %w",
+				targetBranch, strings.TrimSpace(string(resetOut)), resetErr)
+		}
+		// Reset succeeded — branch now matches target, agent will redo work
 	}
 	return nil
 }
