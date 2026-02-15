@@ -1,14 +1,20 @@
 agent:
   command: claude
-  args: ["-p"]
+  args: ["--dangerously-skip-permissions", "--model", "sonnet", "-p"]
 
 settings:
   poll_interval: 5s
 
 concerns:
-  - name: security
+  - name: deadcode
     watches: master
-    prompt: "Review for security vulnerabilities"
+    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. Remove any unused code. Do not change any other files and do not push."
+  - name: dry
+    watches: deadcode
+    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. Deduplicate code. Do not change any other files and do not push."
+  - name: test
+    watches: dry
+    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. Run all the tests, fix any failures. Do not reduce test coverage. Do not change any other files and do not push."
   - name: docs
-    watches: security
-    prompt: "Ensure README is up to date with latest features. Commit any changes to the README, but don't change any other files and do not push."
+    watches: test
+    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. Ensure README is up to date with latest features. Don't change any other files and do not push."
