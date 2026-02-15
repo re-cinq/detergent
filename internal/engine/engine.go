@@ -7,10 +7,10 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"syscall"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/creack/pty"

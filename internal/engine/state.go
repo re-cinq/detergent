@@ -30,7 +30,7 @@ func LastSeen(repoDir, concernName string) (string, error) {
 
 // ConcernStatus represents the current lifecycle state of a concern.
 type ConcernStatus struct {
-	State       string `json:"state"`                  // running, idle, failed, skipped
+	State       string `json:"state"`                   // running, idle, failed, skipped
 	LastResult  string `json:"last_result,omitempty"`   // noop, modified
 	StartedAt   string `json:"started_at,omitempty"`    // RFC3339
 	CompletedAt string `json:"completed_at,omitempty"`  // RFC3339

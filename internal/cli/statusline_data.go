@@ -43,14 +43,14 @@ type StatuslineOutput struct {
 
 // ConcernData represents one concern's status for statusline rendering.
 type ConcernData struct {
-	Name        string `json:"name"`
-	Watches     string `json:"watches"`
-	State       string `json:"state"`
-	LastResult  string `json:"last_result,omitempty"`
-	HeadCommit  string `json:"head_commit,omitempty"`
-	LastSeen    string `json:"last_seen,omitempty"`
-	Error       string `json:"error,omitempty"`
-	BehindHead  bool   `json:"behind_head"`
+	Name       string `json:"name"`
+	Watches    string `json:"watches"`
+	State      string `json:"state"`
+	LastResult string `json:"last_result,omitempty"`
+	HeadCommit string `json:"head_commit,omitempty"`
+	LastSeen   string `json:"last_seen,omitempty"`
+	Error      string `json:"error,omitempty"`
+	BehindHead bool   `json:"behind_head"`
 }
 
 // GraphEdge represents a dependency: Child watches Parent.
