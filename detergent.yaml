@@ -8,10 +8,10 @@ settings:
 
 concerns:
   - name: deadcode
-    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. If you use beads, act on the work immediately and do not exit until those beads have been resolved. Remove any unused code. Do not change any other files and do not push."
+    prompt: "If you use beads, act on the work immediately and do not exit until those beads have been resolved. Remove any unused code. Do not change any other files and do not push."
   - name: dry
-    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. If you use beads, act on the work immediately and do not exit until those beads have been resolved. Deduplicate code. Do not change any other files and do not push."
+    prompt: "If you use beads, act on the work immediately and do not exit until those beads have been resolved. Deduplicate code. Do not change any other files and do not push. Don't bother testing, we'll do that later."
   - name: test
-    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. If you use beads, act on the work immediately and do not exit until those beads have been resolved. Run all the tests, fix any failures. Do not reduce test coverage. Do not change any other files and do not push."
+    prompt: "If you use beads, act on the work immediately and do not exit until those beads have been resolved. Run all the tests, fix any failures. Do not reduce test coverage. Do not change any other files and do not push."
   - name: docs
-    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. If you use beads, act on the work immediately and do not exit until those beads have been resolved. Ensure README is up to date with latest features. Don't change any other files and do not push."
+    prompt: "If you use beads, act on the work immediately and do not exit until those beads have been resolved. Ensure README is up to date with latest features. Don't change any other files and do not push."
