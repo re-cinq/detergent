@@ -113,19 +113,6 @@ func Validate(cfg *Config) []error {
 		}
 	}
 
-	// Validate references: watches must refer to a known concern or an external branch
-	for i, c := range cfg.Concerns {
-		if c.Watches == "" {
-			continue
-		}
-		// A concern can watch another concern (by name) or an external branch.
-		// We only flag unknown references if the watches value matches a
-		// concern-like name but doesn't exist. For now, if it matches an
-		// existing concern name, great; otherwise we assume it's an external branch.
-		// This is validated further during cycle detection.
-		_ = i
-	}
-
 	if cycleErr := detectCycles(cfg.Concerns); cycleErr != nil {
 		errs = append(errs, cycleErr)
 	}
