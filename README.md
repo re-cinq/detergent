@@ -12,6 +12,12 @@ Instead of cramming security, documentation, and style checks into one prompt, D
 curl -fsSL https://raw.githubusercontent.com/DanielJonesEB/detergent/master/scripts/install.sh | bash
 ```
 
+The install script automatically:
+- Downloads the latest release binary for your platform (macOS, Linux, Windows)
+- Falls back to `go install` if release download fails
+- Falls back to building from source if needed
+- Signs binaries on macOS for Gatekeeper compatibility
+
 ### From source
 
 ```bash
@@ -112,7 +118,8 @@ detergent install
   ```
   main ─── security ✓ ── docs ⟳ ── style ·
   ```
-- **Skills** — adds `/rebase` for landing concern branch changes
+  - When on a terminal concern branch that's behind HEAD, displays a bold yellow warning: `⚠ use /rebase <branch> to pick up latest changes`
+- **Skills** — adds `/rebase` for rebasing concern branch changes onto their upstream
 
 ### Statusline Symbols
 
