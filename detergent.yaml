@@ -8,13 +8,13 @@ settings:
 concerns:
   - name: deadcode
     watches: master
-    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. Remove any unused code. Do not change any other files and do not push."
+    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. If you use beads, act on the work immediately and do not exit until those beads have been resolved. Remove any unused code. Do not change any other files and do not push."
   - name: dry
     watches: deadcode
-    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. Deduplicate code. Do not change any other files and do not push."
+    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. If you use beads, act on the work immediately and do not exit until those beads have been resolved. Deduplicate code. Do not change any other files and do not push."
   - name: test
     watches: dry
-    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. Run all the tests, fix any failures. Do not reduce test coverage. Do not change any other files and do not push."
+    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. If you use beads, act on the work immediately and do not exit until those beads have been resolved. Run all the tests, fix any failures. Do not reduce test coverage. Do not change any other files and do not push."
   - name: docs
     watches: test
-    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. Ensure README is up to date with latest features. Don't change any other files and do not push."
+    prompt: "You are running non-interactively. Do not ask questions or wait for confirmation — just do the work. If you use beads, act on the work immediately and do not exit until those beads have been resolved. Ensure README is up to date with latest features. Don't change any other files and do not push."
