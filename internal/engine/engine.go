@@ -19,14 +19,9 @@ import (
 	gitops "github.com/re-cinq/detergent/internal/git"
 )
 
-// logError writes an error message to stderr.
-func logError(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, format+"\n", args...)
-}
-
 // logConcernError writes a concern-specific error message to stderr.
 func logConcernError(concernName string, err error) {
-	fmt.Fprintf(os.Stderr, "concern %s failed: %s\n", concernName, err)
+	fileutil.LogError("concern %s failed: %s", concernName, err)
 }
 
 // LogManager manages per-concern log files for agent output.
@@ -361,7 +356,7 @@ func writeSkippedStatus(repoDir, concernName, errorMsg string, pid int) {
 
 // skipUpstreamFailed logs and marks a concern as skipped due to upstream failure.
 func skipUpstreamFailed(repoDir, concernName string, pid int) {
-	logError("skipping %s: upstream concern failed", concernName)
+	fileutil.LogError("skipping %s: upstream concern failed", concernName)
 	writeSkippedStatus(repoDir, concernName, "upstream concern failed", pid)
 }
 
@@ -502,7 +497,7 @@ func invokeAgent(cfg *config.Config, worktreeDir, context string, output io.Writ
 // writePermissions writes a .claude/settings.json file in the worktree
 // with the configured permissions, so Claude Code agents get pre-approved tools.
 func writePermissions(worktreeDir string, perms *config.Permissions) error {
-	claudeDir := filepath.Join(worktreeDir, ".claude")
+	claudeDir := fileutil.ClaudeDir(worktreeDir)
 	if err := fileutil.EnsureDir(claudeDir); err != nil {
 		return err
 	}
@@ -515,7 +510,7 @@ func writePermissions(worktreeDir string, perms *config.Permissions) error {
 		return err
 	}
 
-	return os.WriteFile(filepath.Join(claudeDir, "settings.json"), append(data, '\n'), 0644)
+	return os.WriteFile(fileutil.ClaudeSubpath(worktreeDir, "settings.json"), append(data, '\n'), 0644)
 }
 
 func commitChanges(worktreeDir string, concern config.Concern, triggeredBy string) (bool, error) {

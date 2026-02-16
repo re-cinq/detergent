@@ -15,14 +15,14 @@ import (
 func loadAndValidateConfig(path string) (*config.Config, error) {
 	cfg, err := config.Load(path)
 	if err != nil {
-		logError("Error: %s", err)
+		fileutil.LogError("Error: %s", err)
 		return nil, err
 	}
 
 	errs := config.Validate(cfg)
 	if len(errs) > 0 {
 		for _, e := range errs {
-			logError("Error: %s", e)
+			fileutil.LogError("Error: %s", e)
 		}
 		return nil, fmt.Errorf("%d validation error(s)", len(errs))
 	}
@@ -95,14 +95,4 @@ func setupSignalHandler() chan os.Signal {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	return sigCh
-}
-
-// logError writes an error message to stderr.
-func logError(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, format+"\n", args...)
-}
-
-// ensureDir creates a directory and all parent directories with 0755 permissions.
-func ensureDir(path string) error {
-	return fileutil.EnsureDir(path)
 }

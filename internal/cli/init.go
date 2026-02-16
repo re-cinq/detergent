@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/re-cinq/detergent/internal/assets"
+	"github.com/re-cinq/detergent/internal/fileutil"
 	"github.com/spf13/cobra"
 )
 
@@ -69,10 +70,10 @@ func initSkills(repoDir string) ([]string, error) {
 		}
 
 		// Target path: .claude/<path> (skills/detergent-rebase/SKILL.md -> .claude/skills/detergent-rebase/SKILL.md)
-		target := filepath.Join(repoDir, ".claude", path)
+		target := fileutil.ClaudeSubpath(repoDir, path)
 
 		if d.IsDir() {
-			return ensureDir(target)
+			return fileutil.EnsureDir(target)
 		}
 
 		data, err := assets.Skills.ReadFile(path)
@@ -103,10 +104,10 @@ func initStatusline(repoDir string) error {
 		detergentBin = "detergent"
 	}
 
-	settingsPath := filepath.Join(repoDir, ".claude", "settings.local.json")
+	settingsPath := fileutil.ClaudeSubpath(repoDir, "settings.local.json")
 
 	// Ensure .claude/ exists
-	if err := ensureDir(filepath.Dir(settingsPath)); err != nil {
+	if err := fileutil.EnsureDir(fileutil.ClaudeDir(repoDir)); err != nil {
 		return err
 	}
 

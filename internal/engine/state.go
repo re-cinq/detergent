@@ -28,14 +28,9 @@ const (
 	ResultModified = "modified"
 )
 
-// detergentSubdir builds a path to a subdirectory within .detergent.
-func detergentSubdir(repoDir, subdir string) string {
-	return filepath.Join(repoDir, ".detergent", subdir)
-}
-
 // stateDir returns the state directory path for a repo.
 func stateDir(repoDir string) string {
-	return detergentSubdir(repoDir, "state")
+	return fileutil.DetergentSubdir(repoDir, "state")
 }
 
 // LastSeen returns the last-seen commit hash for a concern, or "" if none.
@@ -65,7 +60,7 @@ type ConcernStatus struct {
 
 // statusDir returns the status directory path for a repo.
 func statusDir(repoDir string) string {
-	return detergentSubdir(repoDir, "status")
+	return fileutil.DetergentSubdir(repoDir, "status")
 }
 
 // WriteStatus writes a concern's status to its JSON status file.

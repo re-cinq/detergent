@@ -7,6 +7,7 @@ import (
 
 	"github.com/re-cinq/detergent/internal/config"
 	"github.com/re-cinq/detergent/internal/engine"
+	"github.com/re-cinq/detergent/internal/fileutil"
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +59,7 @@ func runDaemon(cfg *config.Config, repoDir string) error {
 
 	// Run immediately on startup
 	if err := engine.RunOnceWithLogs(cfg, repoDir, logMgr); err != nil {
-		logError("poll error: %s", err)
+		fileutil.LogError("poll error: %s", err)
 	}
 
 	for {
@@ -72,7 +73,7 @@ func runDaemon(cfg *config.Config, repoDir string) error {
 		case <-ticker.C:
 			cfg = reloadConfig(configPath, cfg, ticker)
 			if err := engine.RunOnceWithLogs(cfg, repoDir, logMgr); err != nil {
-				logError("poll error: %s", err)
+				fileutil.LogError("poll error: %s", err)
 			}
 		}
 	}
@@ -84,11 +85,11 @@ func runDaemon(cfg *config.Config, repoDir string) error {
 func reloadConfig(path string, prev *config.Config, ticker *time.Ticker) *config.Config {
 	newCfg, err := config.Load(path)
 	if err != nil {
-		logError("config reload: %s (keeping previous config)", err)
+		fileutil.LogError("config reload: %s (keeping previous config)", err)
 		return prev
 	}
 	if errs := config.Validate(newCfg); len(errs) > 0 {
-		logError("config reload: invalid (%s) (keeping previous config)", errs[0])
+		fileutil.LogError("config reload: invalid (%s) (keeping previous config)", errs[0])
 		return prev
 	}
 

@@ -11,6 +11,7 @@ import (
 
 	"github.com/re-cinq/detergent/internal/config"
 	"github.com/re-cinq/detergent/internal/engine"
+	"github.com/re-cinq/detergent/internal/fileutil"
 	gitops "github.com/re-cinq/detergent/internal/git"
 	"github.com/spf13/cobra"
 )
@@ -58,7 +59,7 @@ func followStatus(cfg *config.Config, repoDir string) error {
 	for {
 		var buf bytes.Buffer
 		if err := renderStatus(&buf, cfg, repoDir, true); err != nil {
-			logError("\nerror: %s", err)
+			fileutil.LogError("\nerror: %s", err)
 		}
 		output := buf.String()
 

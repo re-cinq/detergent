@@ -5,6 +5,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/re-cinq/detergent/internal/fileutil"
 )
 
 // Repo wraps git operations for a repository.
@@ -100,7 +102,7 @@ func (r *Repo) EnsureIdentity() {
 
 // WorktreePath returns the expected worktree path for a concern.
 func WorktreePath(repoDir, branchPrefix, concernName string) string {
-	return filepath.Join(repoDir, ".detergent", "worktrees", branchPrefix+concernName)
+	return fileutil.DetergentSubdir(repoDir, filepath.Join("worktrees", branchPrefix+concernName))
 }
 
 // HasChanges checks if there are any uncommitted changes in the worktree.
