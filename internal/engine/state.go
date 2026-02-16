@@ -125,6 +125,30 @@ func IsProcessAlive(pid int) bool {
 	return err == nil
 }
 
+// ResetActiveStatuses resets any concern status that is in an active state
+// (change_detected, agent_running, committing) back to idle. This should be
+// called at the start of each processing cycle — any active status at that
+// point is stale from a previous run that was interrupted (e.g., daemon killed).
+func ResetActiveStatuses(repoDir string, concernNames []string) {
+	pid := os.Getpid()
+	for _, name := range concernNames {
+		status, err := ReadStatus(repoDir, name)
+		if err != nil || status == nil {
+			continue
+		}
+		if !IsActiveState(status.State) {
+			continue
+		}
+		_ = WriteStatus(repoDir, name, &ConcernStatus{
+			State:      StateFailed,
+			Error:      fmt.Sprintf("stale %s state cleared on startup (previous process interrupted)", status.State),
+			LastSeen:   status.LastSeen,
+			LastResult: status.LastResult,
+			PID:        pid,
+		})
+	}
+}
+
 // SetLastSeen records the last-seen commit hash for a concern.
 func SetLastSeen(repoDir, concernName, hash string) error {
 	dir := stateDir(repoDir)

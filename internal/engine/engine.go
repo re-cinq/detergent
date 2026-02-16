@@ -100,6 +100,13 @@ func RunOnce(cfg *config.Config, repoDir string) error {
 // RunOnceWithLogs processes each concern once using the provided LogManager.
 // The LogManager is not closed; the caller is responsible for closing it.
 func RunOnceWithLogs(cfg *config.Config, repoDir string, logMgr *LogManager) error {
+	// Clear any stale active statuses from a previous interrupted run.
+	concernNames := make([]string, len(cfg.Concerns))
+	for i, c := range cfg.Concerns {
+		concernNames[i] = c.Name
+	}
+	ResetActiveStatuses(repoDir, concernNames)
+
 	repo := gitops.NewRepo(repoDir)
 	repo.EnsureIdentity()
 
