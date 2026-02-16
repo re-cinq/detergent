@@ -41,7 +41,7 @@ func (lm *LogManager) getLogFile(concernName string) (*os.File, error) {
 		return f, nil
 	}
 
-	logPath := filepath.Join(os.TempDir(), fmt.Sprintf("detergent-%s.log", concernName))
+	logPath := LogPathFor(concernName)
 	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("opening log file %s: %w", logPath, err)
