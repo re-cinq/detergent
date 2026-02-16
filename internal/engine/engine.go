@@ -129,7 +129,7 @@ func RunOnceWithLogs(cfg *config.Config, repoDir string, logMgr *LogManager) err
 				go func(concern config.Concern) {
 					defer wg.Done()
 					if err := processConcern(cfg, repo, repoDir, concern, logMgr); err != nil {
-						fmt.Fprintf(os.Stderr, "concern %s failed: %s\n", concern.Name, err)
+						logConcernError(concern.Name, err)
 						failed.set(concern.Name)
 					}
 				}(c)
