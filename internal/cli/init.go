@@ -125,10 +125,8 @@ func initStatusline(repoDir string) error {
 		"type":    "command",
 	}
 
-	out, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshaling settings: %w", err)
+	if err := fileutil.WriteJSON(settingsPath, settings); err != nil {
+		return fmt.Errorf("writing settings: %w", err)
 	}
-
-	return os.WriteFile(settingsPath, append(out, '\n'), 0o644)
+	return nil
 }

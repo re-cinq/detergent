@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -507,12 +506,7 @@ func writePermissions(worktreeDir string, perms *config.Permissions) error {
 	settings := map[string]interface{}{
 		"permissions": perms,
 	}
-	data, err := json.MarshalIndent(settings, "", "  ")
-	if err != nil {
-		return err
-	}
-
-	return os.WriteFile(fileutil.ClaudeSubpath(worktreeDir, "settings.json"), append(data, '\n'), 0644)
+	return fileutil.WriteJSON(fileutil.ClaudeSubpath(worktreeDir, "settings.json"), settings)
 }
 
 func commitChanges(worktreeDir string, concern config.Concern, triggeredBy string) (bool, error) {
