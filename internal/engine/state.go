@@ -8,6 +8,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/re-cinq/detergent/internal/fileutil"
 )
 
 // State constants
@@ -26,9 +28,14 @@ const (
 	ResultModified = "modified"
 )
 
+// detergentSubdir builds a path to a subdirectory within .detergent.
+func detergentSubdir(repoDir, subdir string) string {
+	return filepath.Join(repoDir, ".detergent", subdir)
+}
+
 // stateDir returns the state directory path for a repo.
 func stateDir(repoDir string) string {
-	return filepath.Join(repoDir, ".detergent", "state")
+	return detergentSubdir(repoDir, "state")
 }
 
 // LastSeen returns the last-seen commit hash for a concern, or "" if none.
@@ -58,13 +65,13 @@ type ConcernStatus struct {
 
 // statusDir returns the status directory path for a repo.
 func statusDir(repoDir string) string {
-	return filepath.Join(repoDir, ".detergent", "status")
+	return detergentSubdir(repoDir, "status")
 }
 
 // WriteStatus writes a concern's status to its JSON status file.
 func WriteStatus(repoDir, concernName string, status *ConcernStatus) error {
 	dir := statusDir(repoDir)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := fileutil.EnsureDir(dir); err != nil {
 		return err
 	}
 	data, err := json.Marshal(status)
@@ -121,7 +128,7 @@ func IsProcessAlive(pid int) bool {
 // SetLastSeen records the last-seen commit hash for a concern.
 func SetLastSeen(repoDir, concernName, hash string) error {
 	dir := stateDir(repoDir)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := fileutil.EnsureDir(dir); err != nil {
 		return err
 	}
 	return os.WriteFile(filepath.Join(dir, concernName), []byte(hash+"\n"), 0644)
