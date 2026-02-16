@@ -176,7 +176,9 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool
 	return nil
 }
 
-// readLastLines reads the last n lines from a file, returning "" if the file doesn't exist.
+// readLastLines reads the last n lines from the most recent run in a log file.
+// It finds the last "--- Processing" header and only considers lines after it,
+// so that status -f doesn't show stale output from previous runs.
 func readLastLines(path string, n int) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -186,7 +188,23 @@ func readLastLines(path string, n int) string {
 	if content == "" {
 		return ""
 	}
+
 	lines := strings.Split(content, "\n")
+
+	// Find the last run header to skip previous runs' output
+	runStart := 0
+	for i, line := range lines {
+		if strings.HasPrefix(line, "--- Processing ") {
+			runStart = i + 1
+		}
+	}
+
+	// Only show lines from the current run (after the header)
+	if runStart >= len(lines) {
+		return ""
+	}
+	lines = lines[runStart:]
+
 	if len(lines) > n {
 		lines = lines[len(lines)-n:]
 	}
