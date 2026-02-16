@@ -19,11 +19,6 @@ import (
 	gitops "github.com/re-cinq/detergent/internal/git"
 )
 
-// logConcernError writes a concern-specific error message to stderr.
-func logConcernError(concernName string, err error) {
-	fileutil.LogError("concern %s failed: %s", concernName, err)
-}
-
 // LogManager manages per-concern log files for agent output.
 type LogManager struct {
 	mu    sync.Mutex
@@ -117,7 +112,7 @@ func RunOnceWithLogs(cfg *config.Config, repoDir string, logMgr *LogManager) err
 				continue
 			}
 			if err := processConcern(cfg, repo, repoDir, c, logMgr); err != nil {
-				logConcernError(c.Name, err)
+				fileutil.LogError("concern %s failed: %s", c.Name, err)
 				failed.set(c.Name)
 			}
 		} else {
@@ -132,7 +127,7 @@ func RunOnceWithLogs(cfg *config.Config, repoDir string, logMgr *LogManager) err
 				go func(concern config.Concern) {
 					defer wg.Done()
 					if err := processConcern(cfg, repo, repoDir, concern, logMgr); err != nil {
-						logConcernError(concern.Name, err)
+						fileutil.LogError("concern %s failed: %s", concern.Name, err)
 						failed.set(concern.Name)
 					}
 				}(c)
