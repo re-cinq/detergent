@@ -112,10 +112,7 @@ func statusSymbol(state, lastResult string) string {
 	case "pending":
 		return "◯"
 	case engine.StateIdle:
-		switch lastResult {
-		case engine.ResultModified:
-			return "*"
-		case engine.ResultNoop:
+		if lastResult != "" {
 			return "✓"
 		}
 		return "·"
@@ -143,10 +140,7 @@ func statusColor(state, lastResult string) string {
 	case "pending":
 		return ansiYellow
 	case engine.StateIdle:
-		switch lastResult {
-		case engine.ResultModified:
-			return ansiCyan
-		case engine.ResultNoop:
+		if lastResult != "" {
 			return ansiGreen
 		}
 		return ansiDim
