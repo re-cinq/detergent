@@ -8,6 +8,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/re-cinq/detergent/internal/fileutil"
 )
 
 // State constants
@@ -64,7 +66,7 @@ func statusDir(repoDir string) string {
 // WriteStatus writes a concern's status to its JSON status file.
 func WriteStatus(repoDir, concernName string, status *ConcernStatus) error {
 	dir := statusDir(repoDir)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := fileutil.EnsureDir(dir); err != nil {
 		return err
 	}
 	data, err := json.Marshal(status)
@@ -121,7 +123,7 @@ func IsProcessAlive(pid int) bool {
 // SetLastSeen records the last-seen commit hash for a concern.
 func SetLastSeen(repoDir, concernName, hash string) error {
 	dir := stateDir(repoDir)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := fileutil.EnsureDir(dir); err != nil {
 		return err
 	}
 	return os.WriteFile(filepath.Join(dir, concernName), []byte(hash+"\n"), 0644)

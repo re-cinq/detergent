@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/re-cinq/detergent/internal/config"
+	"github.com/re-cinq/detergent/internal/fileutil"
 )
 
 // loadAndValidateConfig loads a config file and validates it, printing errors to stderr.
@@ -21,7 +22,7 @@ func loadAndValidateConfig(path string) (*config.Config, error) {
 	errs := config.Validate(cfg)
 	if len(errs) > 0 {
 		for _, e := range errs {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", e)
+			logError("Error: %s", e)
 		}
 		return nil, fmt.Errorf("%d validation error(s)", len(errs))
 	}
@@ -103,5 +104,5 @@ func logError(format string, args ...interface{}) {
 
 // ensureDir creates a directory and all parent directories with 0755 permissions.
 func ensureDir(path string) error {
-	return os.MkdirAll(path, 0755)
+	return fileutil.EnsureDir(path)
 }

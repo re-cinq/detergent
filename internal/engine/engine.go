@@ -15,6 +15,7 @@ import (
 
 	"github.com/creack/pty"
 	"github.com/re-cinq/detergent/internal/config"
+	"github.com/re-cinq/detergent/internal/fileutil"
 	gitops "github.com/re-cinq/detergent/internal/git"
 )
 
@@ -212,7 +213,7 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	// Ensure worktree exists
 	wtPath := gitops.WorktreePath(repoDir, cfg.Settings.BranchPrefix, concern.Name)
 	if _, err := os.Stat(wtPath); os.IsNotExist(err) {
-		if err := os.MkdirAll(filepath.Dir(wtPath), 0755); err != nil {
+		if err := fileutil.EnsureDir(filepath.Dir(wtPath)); err != nil {
 			return processConcernFailed(repoDir, concern.Name, startedAt, head, lastSeen, pid, err,
 				fmt.Errorf("creating worktree directory: %w", err))
 		}
@@ -471,7 +472,7 @@ func invokeAgent(cfg *config.Config, worktreeDir, context string, output io.Writ
 // with the configured permissions, so Claude Code agents get pre-approved tools.
 func writePermissions(worktreeDir string, perms *config.Permissions) error {
 	claudeDir := filepath.Join(worktreeDir, ".claude")
-	if err := os.MkdirAll(claudeDir, 0755); err != nil {
+	if err := fileutil.EnsureDir(claudeDir); err != nil {
 		return err
 	}
 
