@@ -115,28 +115,34 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool
 		if status != nil {
 			// Check for stale active states (process died)
 			if engine.IsActiveState(status.State) && !engine.IsProcessAlive(status.PID) {
-				fmt.Fprintf(w, "  %s✗  %-20s  stale (process %d no longer running, was: %s)%s\n", ansiRed, c.Name, status.PID, status.State, ansiReset)
+				sym, clr := stateDisplay(engine.StateFailed, "")
+				fmt.Fprintf(w, "  %s%s  %-20s  stale (process %d no longer running, was: %s)%s\n", clr, sym, c.Name, status.PID, status.State, ansiReset)
 				continue
 			}
 
 			switch status.State {
 			case engine.StateChangeDetected:
-				fmt.Fprintf(w, "  %s◎  %-20s  change detected at %s%s\n", ansiYellow, c.Name, short(status.HeadAtStart), ansiReset)
+				sym, clr := stateDisplay(status.State, "")
+				fmt.Fprintf(w, "  %s%s  %-20s  change detected at %s%s\n", clr, sym, c.Name, short(status.HeadAtStart), ansiReset)
 				activeConcerns = append(activeConcerns, c.Name)
 				continue
 			case engine.StateAgentRunning:
-				fmt.Fprintf(w, "  %s⟳  %-20s  agent running (since %s)%s\n", ansiYellow, c.Name, status.StartedAt, ansiReset)
+				sym, clr := stateDisplay(status.State, "")
+				fmt.Fprintf(w, "  %s%s  %-20s  agent running (since %s)%s\n", clr, sym, c.Name, status.StartedAt, ansiReset)
 				activeConcerns = append(activeConcerns, c.Name)
 				continue
 			case engine.StateCommitting:
-				fmt.Fprintf(w, "  %s⟳  %-20s  committing changes%s\n", ansiYellow, c.Name, ansiReset)
+				sym, clr := stateDisplay(status.State, "")
+				fmt.Fprintf(w, "  %s%s  %-20s  committing changes%s\n", clr, sym, c.Name, ansiReset)
 				activeConcerns = append(activeConcerns, c.Name)
 				continue
 			case engine.StateFailed:
-				fmt.Fprintf(w, "  %s✗  %-20s  failed: %s%s\n", ansiRed, c.Name, status.Error, ansiReset)
+				sym, clr := stateDisplay(status.State, "")
+				fmt.Fprintf(w, "  %s%s  %-20s  failed: %s%s\n", clr, sym, c.Name, status.Error, ansiReset)
 				continue
 			case engine.StateSkipped:
-				fmt.Fprintf(w, "  %s⊘  %-20s  skipped: %s%s\n", ansiDim, c.Name, status.Error, ansiReset)
+				sym, clr := stateDisplay(status.State, "")
+				fmt.Fprintf(w, "  %s%s  %-20s  skipped: %s%s\n", clr, sym, c.Name, status.Error, ansiReset)
 				continue
 			}
 		}
@@ -149,16 +155,20 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool
 		head, err := repo.HeadCommit(watchedBranch)
 		if err != nil {
 			// Branch might not exist yet
-			fmt.Fprintf(w, "  %s◯  %-20s  (not started - watched branch %s not found)%s\n", ansiDim, c.Name, watchedBranch, ansiReset)
+			sym, clr := stateDisplay("unknown", "")
+			fmt.Fprintf(w, "  %s%s  %-20s  (not started - watched branch %s not found)%s\n", clr, sym, c.Name, watchedBranch, ansiReset)
 			continue
 		}
 
 		if lastSeen == "" {
-			fmt.Fprintf(w, "  %s◯  %-20s  pending (never processed)%s\n", ansiYellow, c.Name, ansiReset)
+			sym, clr := stateDisplay("pending", "")
+			fmt.Fprintf(w, "  %s%s  %-20s  pending (never processed)%s\n", clr, sym, c.Name, ansiReset)
 		} else if lastSeen == head {
-			fmt.Fprintf(w, "  %s✓  %-20s  caught up at %s%s\n", ansiGreen, c.Name, short(lastSeen), ansiReset)
+			sym, clr := stateDisplay(engine.StateIdle, "result")
+			fmt.Fprintf(w, "  %s%s  %-20s  caught up at %s%s\n", clr, sym, c.Name, short(lastSeen), ansiReset)
 		} else {
-			fmt.Fprintf(w, "  %s◯  %-20s  pending (last: %s, head: %s)%s\n", ansiYellow, c.Name, short(lastSeen), short(head), ansiReset)
+			sym, clr := stateDisplay("pending", "")
+			fmt.Fprintf(w, "  %s%s  %-20s  pending (last: %s, head: %s)%s\n", clr, sym, c.Name, short(lastSeen), short(head), ansiReset)
 		}
 	}
 

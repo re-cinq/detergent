@@ -84,77 +84,9 @@ func findDetergentConfig(dir string) string {
 	return findFileUp(dir, []string{"detergent.yaml", "detergent.yml"})
 }
 
-// ANSI escape codes
-const (
-	ansiGreen       = "\033[32m"
-	ansiCyan        = "\033[36m"
-	ansiYellow      = "\033[33m"
-	ansiRed         = "\033[31m"
-	ansiDim         = "\033[2m"
-	ansiBoldMagenta = "\033[1;35m"
-	ansiReset       = "\033[0m"
-)
-
-func statusSymbol(state, lastResult string) string {
-	switch state {
-	case engine.StateChangeDetected:
-		return "◎"
-	case engine.StateAgentRunning:
-		return "⟳"
-	case engine.StateCommitting:
-		return "⟳"
-	case "running": // legacy
-		return "⟳"
-	case engine.StateFailed:
-		return "✗"
-	case engine.StateSkipped:
-		return "⊘"
-	case "pending":
-		return "◯"
-	case engine.StateIdle:
-		if lastResult != "" {
-			return "✓"
-		}
-		return "·"
-	case "unknown":
-		return "·"
-	default:
-		return "◯"
-	}
-}
-
-func statusColor(state, lastResult string) string {
-	switch state {
-	case engine.StateChangeDetected:
-		return ansiYellow
-	case engine.StateAgentRunning:
-		return ansiYellow
-	case engine.StateCommitting:
-		return ansiYellow
-	case "running": // legacy
-		return ansiYellow
-	case engine.StateFailed:
-		return ansiRed
-	case engine.StateSkipped:
-		return ansiDim
-	case "pending":
-		return ansiYellow
-	case engine.StateIdle:
-		if lastResult != "" {
-			return ansiGreen
-		}
-		return ansiDim
-	case "unknown":
-		return ansiDim
-	default:
-		return ansiReset
-	}
-}
-
 func renderConcern(name string, concerns map[string]ConcernData) string {
 	c := concerns[name]
-	sym := statusSymbol(c.State, c.LastResult)
-	clr := statusColor(c.State, c.LastResult)
+	sym, clr := stateDisplay(c.State, c.LastResult)
 	return fmt.Sprintf("%s%s %s%s", clr, name, sym, ansiReset)
 }
 
