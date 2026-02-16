@@ -51,6 +51,27 @@ func (lm *LogManager) getLogFile(concernName string) (*os.File, error) {
 	return f, nil
 }
 
+// truncateLogFile truncates the log file for a concern to clear old logs from previous runs.
+func (lm *LogManager) truncateLogFile(concernName string) error {
+	lm.mu.Lock()
+	defer lm.mu.Unlock()
+
+	// Close and remove the cached file handle if it exists
+	if f, ok := lm.files[concernName]; ok {
+		f.Close()
+		delete(lm.files, concernName)
+	}
+
+	logPath := LogPathFor(concernName)
+	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		return fmt.Errorf("truncating log file %s: %w", logPath, err)
+	}
+
+	lm.files[concernName] = f
+	return nil
+}
+
 // LogPath returns the log file path pattern for display purposes.
 func LogPath() string {
 	return filepath.Join(os.TempDir(), "detergent-<concern>.log")
@@ -254,7 +275,12 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 		return ctx.fail(err, fmt.Errorf("assembling context: %w", err))
 	}
 
-	// Get log file for this concern
+	// Truncate log file to clear old logs from previous runs
+	if err := logMgr.truncateLogFile(concern.Name); err != nil {
+		return ctx.fail(err, fmt.Errorf("truncating log file: %w", err))
+	}
+
+	// Get log file for this concern (after truncate, this returns the fresh file)
 	logFile, err := logMgr.getLogFile(concern.Name)
 	if err != nil {
 		return ctx.fail(err, fmt.Errorf("getting log file: %w", err))
