@@ -39,7 +39,6 @@ type StatuslineOutput struct {
 	Concerns           []ConcernData `json:"concerns"`
 	Roots              []string      `json:"roots"`
 	Graph              []GraphEdge   `json:"graph"`
-	BranchPrefix       string        `json:"branch_prefix"`
 	HasUnpickedCommits bool          `json:"has_unpicked_commits"`
 }
 
@@ -149,7 +148,6 @@ func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 		Concerns:           concerns,
 		Roots:              roots,
 		Graph:              graph,
-		BranchPrefix:       cfg.Settings.BranchPrefix,
 		HasUnpickedCommits: hasUnpicked,
 	}
 }
