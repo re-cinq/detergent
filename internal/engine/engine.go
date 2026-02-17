@@ -441,6 +441,19 @@ func writeIdleStatus(repoDir, concernName, lastSeen string, pid int) {
 	})
 }
 
+// writeFailedStatus writes a failed status with completion timestamp and error.
+func writeFailedStatus(repoDir, concernName, startedAt, completedAt, head, lastSeen, errorMsg string, pid int) {
+	writeStatus(repoDir, concernName, statusUpdate{
+		state:       StateFailed,
+		startedAt:   startedAt,
+		completedAt: completedAt,
+		headAtStart: head,
+		lastSeen:    lastSeen,
+		errorMsg:    errorMsg,
+		pid:         pid,
+	})
+}
+
 // writeSkippedStatus writes a skipped status with the given error message.
 func writeSkippedStatus(repoDir, concernName, errorMsg string, pid int) {
 	writeStatus(repoDir, concernName, statusUpdate{
@@ -458,15 +471,7 @@ func skipUpstreamFailed(repoDir, concernName string, pid int) {
 
 // processConcernFailed writes a failed status and returns the wrapped error.
 func processConcernFailed(repoDir, concernName, startedAt, head, lastSeen string, pid int, origErr, wrappedErr error) error {
-	_ = WriteStatus(repoDir, concernName, &ConcernStatus{
-		State:       StateFailed,
-		StartedAt:   startedAt,
-		CompletedAt: nowRFC3339(),
-		Error:       origErr.Error(),
-		LastSeen:    lastSeen,
-		HeadAtStart: head,
-		PID:         pid,
-	})
+	writeFailedStatus(repoDir, concernName, startedAt, nowRFC3339(), head, lastSeen, origErr.Error(), pid)
 	return wrappedErr
 }
 

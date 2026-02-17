@@ -144,13 +144,7 @@ func ResetActiveStatuses(repoDir string, concernNames []string) {
 		if !IsActiveState(status.State) {
 			continue
 		}
-		_ = WriteStatus(repoDir, name, &ConcernStatus{
-			State:      StateFailed,
-			Error:      fmt.Sprintf("stale %s state cleared on startup (previous process interrupted)", status.State),
-			LastSeen:   status.LastSeen,
-			LastResult: status.LastResult,
-			PID:        pid,
-		})
+		writeStaleFailedStatus(repoDir, name, status.State, status.LastSeen, status.LastResult, pid)
 	}
 }
 
@@ -161,4 +155,16 @@ func SetLastSeen(repoDir, concernName, hash string) error {
 		return err
 	}
 	return os.WriteFile(stateFilePath(repoDir, concernName), []byte(hash+"\n"), 0644)
+}
+
+// writeStaleFailedStatus writes a failed status for a stale active state that was interrupted.
+// This is called on startup when we find a concern stuck in an active state from a previous run.
+func writeStaleFailedStatus(repoDir, concernName, staleState, lastSeen, lastResult string, pid int) {
+	_ = WriteStatus(repoDir, concernName, &ConcernStatus{
+		State:      StateFailed,
+		Error:      fmt.Sprintf("stale %s state cleared on startup (previous process interrupted)", staleState),
+		LastSeen:   lastSeen,
+		LastResult: lastResult,
+		PID:        pid,
+	})
 }
