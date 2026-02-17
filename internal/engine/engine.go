@@ -107,6 +107,24 @@ func RunOnce(cfg *config.Config, repoDir string) error {
 	return RunOnceWithLogs(cfg, repoDir, logMgr)
 }
 
+// shouldSkipConcern checks if a concern should be skipped due to upstream failures.
+// If upstream failed, it writes a skip status and returns true.
+func shouldSkipConcern(repoDir string, c config.Concern, failed *failedSet) bool {
+	if failed.has(c.Watches) {
+		skipUpstreamFailed(repoDir, c.Name, os.Getpid())
+		return true
+	}
+	return false
+}
+
+// processConcernAndTrackFailure processes a concern and tracks failures in the failedSet.
+func processConcernAndTrackFailure(cfg *config.Config, repo *gitops.Repo, repoDir string, c config.Concern, logMgr *LogManager, failed *failedSet) {
+	if err := processConcern(cfg, repo, repoDir, c, logMgr); err != nil {
+		fileutil.LogError("concern %s failed: %s", c.Name, err)
+		failed.set(c.Name)
+	}
+}
+
 // RunOnceWithLogs processes each concern once using the provided LogManager.
 // The LogManager is not closed; the caller is responsible for closing it.
 func RunOnceWithLogs(cfg *config.Config, repoDir string, logMgr *LogManager) error {
@@ -127,29 +145,20 @@ func RunOnceWithLogs(cfg *config.Config, repoDir string, logMgr *LogManager) err
 		if len(level) == 1 {
 			// Single concern: run directly (no goroutine overhead)
 			c := level[0]
-			if failed.has(c.Watches) {
-				skipUpstreamFailed(repoDir, c.Name, os.Getpid())
-				continue
-			}
-			if err := processConcern(cfg, repo, repoDir, c, logMgr); err != nil {
-				fileutil.LogError("concern %s failed: %s", c.Name, err)
-				failed.set(c.Name)
+			if !shouldSkipConcern(repoDir, c, failed) {
+				processConcernAndTrackFailure(cfg, repo, repoDir, c, logMgr, failed)
 			}
 		} else {
 			// Multiple independent concerns: run in parallel
 			var wg sync.WaitGroup
 			for _, c := range level {
-				if failed.has(c.Watches) {
-					skipUpstreamFailed(repoDir, c.Name, os.Getpid())
+				if shouldSkipConcern(repoDir, c, failed) {
 					continue
 				}
 				wg.Add(1)
 				go func(concern config.Concern) {
 					defer wg.Done()
-					if err := processConcern(cfg, repo, repoDir, concern, logMgr); err != nil {
-						fileutil.LogError("concern %s failed: %s", concern.Name, err)
-						failed.set(concern.Name)
-					}
+					processConcernAndTrackFailure(cfg, repo, repoDir, concern, logMgr, failed)
 				}(c)
 			}
 			wg.Wait()

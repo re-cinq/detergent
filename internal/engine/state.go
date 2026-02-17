@@ -160,11 +160,11 @@ func SetLastSeen(repoDir, concernName, hash string) error {
 // writeStaleFailedStatus writes a failed status for a stale active state that was interrupted.
 // This is called on startup when we find a concern stuck in an active state from a previous run.
 func writeStaleFailedStatus(repoDir, concernName, staleState, lastSeen, lastResult string, pid int) {
-	_ = WriteStatus(repoDir, concernName, &ConcernStatus{
-		State:      StateFailed,
-		Error:      fmt.Sprintf("stale %s state cleared on startup (previous process interrupted)", staleState),
-		LastSeen:   lastSeen,
-		LastResult: lastResult,
-		PID:        pid,
+	writeStatus(repoDir, concernName, statusUpdate{
+		state:      StateFailed,
+		errorMsg:   fmt.Sprintf("stale %s state cleared on startup (previous process interrupted)", staleState),
+		lastSeen:   lastSeen,
+		lastResult: lastResult,
+		pid:        pid,
 	})
 }
