@@ -23,12 +23,7 @@ var runCmd = &cobra.Command{
 	Short: "Run the detergent daemon",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := loadAndValidateConfig(configPath)
-		if err != nil {
-			return err
-		}
-
-		repoDir, err := resolveRepo(configPath)
+		cfg, repoDir, err := loadConfigAndRepo(configPath)
 		if err != nil {
 			return err
 		}

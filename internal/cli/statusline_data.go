@@ -20,12 +20,7 @@ var statuslineDataCmd = &cobra.Command{
 	Hidden: true,
 	Args:   cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := loadAndValidateConfig(configPath)
-		if err != nil {
-			return err
-		}
-
-		repoDir, err := resolveRepo(configPath)
+		cfg, repoDir, err := loadConfigAndRepo(configPath)
 		if err != nil {
 			return err
 		}
@@ -66,15 +61,13 @@ func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 	repo := gitops.NewRepo(repoDir)
 
 	concerns := make([]ConcernData, 0)
-	roots := make([]string, 0)
+	roots := cfg.FindRoots()
 	graph := make([]GraphEdge, 0)
 
 	for _, c := range cfg.Concerns {
 		// Build graph edges
 		if cfg.HasConcern(c.Watches) {
 			graph = append(graph, GraphEdge{From: c.Watches, To: c.Name})
-		} else {
-			roots = append(roots, c.Name)
 		}
 
 		// Read status file

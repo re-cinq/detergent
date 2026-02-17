@@ -30,6 +30,20 @@ func loadAndValidateConfig(path string) (*config.Config, error) {
 	return cfg, nil
 }
 
+// loadConfigAndRepo loads and validates a config file and resolves the repository root.
+// This consolidates the common pattern used across most CLI commands.
+func loadConfigAndRepo(configPath string) (*config.Config, string, error) {
+	cfg, err := loadAndValidateConfig(configPath)
+	if err != nil {
+		return nil, "", err
+	}
+	repoDir, err := resolveRepo(configPath)
+	if err != nil {
+		return nil, "", err
+	}
+	return cfg, repoDir, nil
+}
+
 // resolveRepo finds the git repository root from a config file path.
 func resolveRepo(configArg string) (string, error) {
 	configPath, err := filepath.Abs(configArg)

@@ -32,30 +32,17 @@ type vizNode struct {
 }
 
 func printGraph(cfg *config.Config) {
-	nameSet := make(map[string]bool)
-	for _, c := range cfg.Concerns {
-		nameSet[c.Name] = true
-	}
+	downstream := cfg.BuildDownstreamMap()
 
 	nodes := make(map[string]*vizNode)
 	for _, c := range cfg.Concerns {
-		nodes[c.Name] = &vizNode{watches: c.Watches}
-	}
-
-	// Build downstream edges: if B watches A, then A -> B
-	for _, c := range cfg.Concerns {
-		if nameSet[c.Watches] {
-			nodes[c.Watches].downstream = append(nodes[c.Watches].downstream, c.Name)
+		nodes[c.Name] = &vizNode{
+			watches:    c.Watches,
+			downstream: downstream[c.Name],
 		}
 	}
 
-	// Roots watch external branches (not other concerns)
-	var roots []string
-	for _, c := range cfg.Concerns {
-		if !nameSet[c.Watches] {
-			roots = append(roots, c.Name)
-		}
-	}
+	roots := cfg.FindRoots()
 
 	for _, root := range roots {
 		fmt.Printf("[%s]\n", nodes[root].watches)

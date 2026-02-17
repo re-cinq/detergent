@@ -32,12 +32,7 @@ var statusCmd = &cobra.Command{
 	Short: "Show the status of each concern",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := loadAndValidateConfig(configPath)
-		if err != nil {
-			return err
-		}
-
-		repoDir, err := resolveRepo(configPath)
+		cfg, repoDir, err := loadConfigAndRepo(configPath)
 		if err != nil {
 			return err
 		}

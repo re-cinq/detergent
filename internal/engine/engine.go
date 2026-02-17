@@ -356,68 +356,97 @@ func getLastResult(repoDir, concernName string) string {
 	return ""
 }
 
+// statusUpdate holds optional fields for writing concern status.
+// Zero values are omitted from the written status.
+type statusUpdate struct {
+	state       string
+	startedAt   string
+	completedAt string
+	headAtStart string
+	lastSeen    string
+	lastResult  string
+	errorMsg    string
+	pid         int
+}
+
+// writeStatus writes a concern status with the given fields.
+// This consolidates all status-writing into a single helper.
+func writeStatus(repoDir, concernName string, u statusUpdate) {
+	status := &ConcernStatus{
+		State:       u.state,
+		StartedAt:   u.startedAt,
+		CompletedAt: u.completedAt,
+		HeadAtStart: u.headAtStart,
+		LastSeen:    u.lastSeen,
+		LastResult:  u.lastResult,
+		Error:       u.errorMsg,
+		PID:         u.pid,
+	}
+	_ = WriteStatus(repoDir, concernName, status)
+}
+
 // writeChangeDetectedStatus writes a change-detected status.
 func writeChangeDetectedStatus(repoDir, concernName, startedAt, head, lastSeen string, pid int) {
-	_ = WriteStatus(repoDir, concernName, &ConcernStatus{
-		State:       StateChangeDetected,
-		StartedAt:   startedAt,
-		HeadAtStart: head,
-		LastSeen:    lastSeen,
-		PID:         pid,
+	writeStatus(repoDir, concernName, statusUpdate{
+		state:       StateChangeDetected,
+		startedAt:   startedAt,
+		headAtStart: head,
+		lastSeen:    lastSeen,
+		pid:         pid,
 	})
 }
 
 // writeAgentRunningStatus writes an agent-running status.
 func writeAgentRunningStatus(repoDir, concernName, startedAt, head, lastSeen string, pid int) {
-	_ = WriteStatus(repoDir, concernName, &ConcernStatus{
-		State:       StateAgentRunning,
-		StartedAt:   startedAt,
-		HeadAtStart: head,
-		LastSeen:    lastSeen,
-		PID:         pid,
+	writeStatus(repoDir, concernName, statusUpdate{
+		state:       StateAgentRunning,
+		startedAt:   startedAt,
+		headAtStart: head,
+		lastSeen:    lastSeen,
+		pid:         pid,
 	})
 }
 
 // writeCommittingStatus writes a committing status.
 func writeCommittingStatus(repoDir, concernName, startedAt, head, lastSeen string, pid int) {
-	_ = WriteStatus(repoDir, concernName, &ConcernStatus{
-		State:       StateCommitting,
-		StartedAt:   startedAt,
-		HeadAtStart: head,
-		LastSeen:    lastSeen,
-		PID:         pid,
+	writeStatus(repoDir, concernName, statusUpdate{
+		state:       StateCommitting,
+		startedAt:   startedAt,
+		headAtStart: head,
+		lastSeen:    lastSeen,
+		pid:         pid,
 	})
 }
 
 // writeIdleWithResultStatus writes an idle status with a specific result.
 func writeIdleWithResultStatus(repoDir, concernName, startedAt, completedAt, head, result string, pid int) {
-	_ = WriteStatus(repoDir, concernName, &ConcernStatus{
-		State:       StateIdle,
-		LastResult:  result,
-		StartedAt:   startedAt,
-		CompletedAt: completedAt,
-		LastSeen:    head,
-		HeadAtStart: head,
-		PID:         pid,
+	writeStatus(repoDir, concernName, statusUpdate{
+		state:       StateIdle,
+		startedAt:   startedAt,
+		completedAt: completedAt,
+		headAtStart: head,
+		lastSeen:    head,
+		lastResult:  result,
+		pid:         pid,
 	})
 }
 
 // writeIdleStatus writes an idle status, preserving the previous LastResult.
 func writeIdleStatus(repoDir, concernName, lastSeen string, pid int) {
-	_ = WriteStatus(repoDir, concernName, &ConcernStatus{
-		State:      StateIdle,
-		LastSeen:   lastSeen,
-		LastResult: getLastResult(repoDir, concernName),
-		PID:        pid,
+	writeStatus(repoDir, concernName, statusUpdate{
+		state:      StateIdle,
+		lastSeen:   lastSeen,
+		lastResult: getLastResult(repoDir, concernName),
+		pid:        pid,
 	})
 }
 
 // writeSkippedStatus writes a skipped status with the given error message.
 func writeSkippedStatus(repoDir, concernName, errorMsg string, pid int) {
-	_ = WriteStatus(repoDir, concernName, &ConcernStatus{
-		State: StateSkipped,
-		Error: errorMsg,
-		PID:   pid,
+	writeStatus(repoDir, concernName, statusUpdate{
+		state:    StateSkipped,
+		errorMsg: errorMsg,
+		pid:      pid,
 	})
 }
 
@@ -678,21 +707,13 @@ func containsAISignature(line string) bool {
 // WatchesExternalBranch returns true if the concern watches a branch that is
 // not another concern's output — i.e., it watches an external branch like "main".
 func WatchesExternalBranch(cfg *config.Config, concern config.Concern) bool {
-	for _, c := range cfg.Concerns {
-		if c.Name == concern.Watches {
-			return false
-		}
-	}
-	return true
+	return !cfg.HasConcern(concern.Watches)
 }
 
 // topologicalLevels groups concerns into levels for parallel execution.
 // Level 0 = roots (watch external branches), Level 1 = depends only on level 0, etc.
 func topologicalLevels(cfg *config.Config) [][]config.Concern {
-	nameSet := make(map[string]bool)
-	for _, c := range cfg.Concerns {
-		nameSet[c.Name] = true
-	}
+	nameSet := cfg.BuildNameSet()
 
 	byName := make(map[string]config.Concern)
 	for _, c := range cfg.Concerns {

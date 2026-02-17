@@ -33,9 +33,14 @@ func stateDir(repoDir string) string {
 	return fileutil.DetergentSubdir(repoDir, "state")
 }
 
+// stateFilePath returns the full path to a concern's state file.
+func stateFilePath(repoDir, concernName string) string {
+	return filepath.Join(stateDir(repoDir), concernName)
+}
+
 // LastSeen returns the last-seen commit hash for a concern, or "" if none.
 func LastSeen(repoDir, concernName string) (string, error) {
-	path := filepath.Join(stateDir(repoDir), concernName)
+	path := stateFilePath(repoDir, concernName)
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return "", nil
@@ -63,6 +68,11 @@ func statusDir(repoDir string) string {
 	return fileutil.DetergentSubdir(repoDir, "status")
 }
 
+// statusFilePath returns the full path to a concern's status JSON file.
+func statusFilePath(repoDir, concernName string) string {
+	return filepath.Join(statusDir(repoDir), concernName+".json")
+}
+
 // WriteStatus writes a concern's status to its JSON status file.
 func WriteStatus(repoDir, concernName string, status *ConcernStatus) error {
 	dir := statusDir(repoDir)
@@ -73,12 +83,12 @@ func WriteStatus(repoDir, concernName string, status *ConcernStatus) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(dir, concernName+".json"), data, 0644)
+	return os.WriteFile(statusFilePath(repoDir, concernName), data, 0644)
 }
 
 // ReadStatus reads a concern's status from its JSON status file.
 func ReadStatus(repoDir, concernName string) (*ConcernStatus, error) {
-	path := filepath.Join(statusDir(repoDir), concernName+".json")
+	path := statusFilePath(repoDir, concernName)
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return nil, nil
@@ -150,5 +160,5 @@ func SetLastSeen(repoDir, concernName, hash string) error {
 	if err := fileutil.EnsureDir(dir); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(dir, concernName), []byte(hash+"\n"), 0644)
+	return os.WriteFile(stateFilePath(repoDir, concernName), []byte(hash+"\n"), 0644)
 }

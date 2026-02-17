@@ -203,3 +203,39 @@ func (cfg *Config) ValidateConcernName(name string) error {
 	}
 	return nil
 }
+
+// BuildNameSet returns a set of all concern names in the config.
+func (cfg *Config) BuildNameSet() map[string]bool {
+	nameSet := make(map[string]bool, len(cfg.Concerns))
+	for _, c := range cfg.Concerns {
+		nameSet[c.Name] = true
+	}
+	return nameSet
+}
+
+// BuildDownstreamMap builds an adjacency map: watched -> []watchers.
+// For each concern, if it watches another concern in the chain, that creates
+// an edge: watched -> watcher.
+func (cfg *Config) BuildDownstreamMap() map[string][]string {
+	nameSet := cfg.BuildNameSet()
+	downstream := make(map[string][]string)
+	for _, c := range cfg.Concerns {
+		if nameSet[c.Watches] {
+			downstream[c.Watches] = append(downstream[c.Watches], c.Name)
+		}
+	}
+	return downstream
+}
+
+// FindRoots returns the names of concerns that watch external branches
+// (not other concerns in the chain).
+func (cfg *Config) FindRoots() []string {
+	nameSet := cfg.BuildNameSet()
+	var roots []string
+	for _, c := range cfg.Concerns {
+		if !nameSet[c.Watches] {
+			roots = append(roots, c.Name)
+		}
+	}
+	return roots
+}
