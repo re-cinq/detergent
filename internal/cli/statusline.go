@@ -224,7 +224,7 @@ func rebaseHint(data StatuslineOutput, concerns map[string]ConcernData, downstre
 	// All concerns must be idle
 	for _, c := range concerns {
 		switch c.State {
-		case engine.StateChangeDetected, engine.StateAgentRunning, engine.StateCommitting, "running", engine.StateFailed, "pending":
+		case engine.StateChangeDetected, engine.StateAgentRunning, engine.StateCommitting, engine.StateFailed, "pending":
 			return ""
 		}
 	}

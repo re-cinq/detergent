@@ -48,7 +48,7 @@ func LastSeen(repoDir, concernName string) (string, error) {
 
 // ConcernStatus represents the current lifecycle state of a concern.
 type ConcernStatus struct {
-	State       string `json:"state"`                   // running, idle, failed, skipped
+	State       string `json:"state"`                   // idle, change_detected, agent_running, committing, failed, skipped
 	LastResult  string `json:"last_result,omitempty"`   // noop, modified
 	StartedAt   string `json:"started_at,omitempty"`    // RFC3339
 	CompletedAt string `json:"completed_at,omitempty"`  // RFC3339
@@ -101,7 +101,7 @@ func nowRFC3339() string {
 // IsActiveState returns true if the state represents an in-progress operation.
 func IsActiveState(state string) bool {
 	switch state {
-	case StateChangeDetected, StateAgentRunning, StateCommitting, "running":
+	case StateChangeDetected, StateAgentRunning, StateCommitting:
 		return true
 	}
 	return false

@@ -5,7 +5,6 @@ import "github.com/re-cinq/detergent/internal/engine"
 // ANSI escape codes for terminal colors
 const (
 	ansiGreen       = "\033[32m"
-	ansiCyan        = "\033[36m"
 	ansiYellow      = "\033[33m"
 	ansiRed         = "\033[31m"
 	ansiDim         = "\033[2m"
@@ -19,8 +18,6 @@ func stateDisplay(state, lastResult string) (symbol, color string) {
 	case engine.StateChangeDetected:
 		return "◎", ansiYellow
 	case engine.StateAgentRunning, engine.StateCommitting:
-		return "⟳", ansiYellow
-	case "running": // legacy
 		return "⟳", ansiYellow
 	case engine.StateFailed:
 		return "✗", ansiRed
