@@ -54,9 +54,11 @@ func (d Duration) Duration() time.Duration {
 }
 
 type Concern struct {
-	Name    string `yaml:"name"`
-	Watches string `yaml:"watches"`
-	Prompt  string `yaml:"prompt"`
+	Name    string   `yaml:"name"`
+	Watches string   `yaml:"watches"`
+	Prompt  string   `yaml:"prompt"`
+	Command string   `yaml:"command,omitempty"`
+	Args    []string `yaml:"args,omitempty"`
 }
 
 func Load(path string) (*Config, error) {

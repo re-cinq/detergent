@@ -309,7 +309,7 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	}
 
 	// Invoke agent in worktree
-	if err := invokeAgent(cfg, wtPath, context, logFile); err != nil {
+	if err := invokeAgent(cfg, concern, wtPath, context, logFile); err != nil {
 		return ctx.fail(err, fmt.Errorf("invoking agent: %w", err))
 	}
 
@@ -551,7 +551,7 @@ func assembleContext(repo *gitops.Repo, cfg *config.Config, concern config.Conce
 	return sb.String(), nil
 }
 
-func invokeAgent(cfg *config.Config, worktreeDir, context string, output io.Writer) error {
+func invokeAgent(cfg *config.Config, concern config.Concern, worktreeDir, context string, output io.Writer) error {
 	// Write context to a file in the worktree (available to the agent)
 	contextFile := filepath.Join(worktreeDir, ".line-context")
 	if err := os.WriteFile(contextFile, []byte(context), 0644); err != nil {
@@ -566,10 +566,20 @@ func invokeAgent(cfg *config.Config, worktreeDir, context string, output io.Writ
 		}
 	}
 
+	// Resolve command and args: per-concern overrides take precedence over global
+	agentCommand := cfg.Agent.Command
+	if concern.Command != "" {
+		agentCommand = concern.Command
+	}
+	agentArgs := cfg.Agent.Args
+	if concern.Args != nil {
+		agentArgs = concern.Args
+	}
+
 	// Pass context file path as last arg, and pipe context to stdin
 	// so agents like `claude -p` that read from stdin work too
-	args := append(cfg.Agent.Args, contextFile)
-	cmd := exec.Command(cfg.Agent.Command, args...)
+	args := append(agentArgs, contextFile)
+	cmd := exec.Command(agentCommand, args...)
 	cmd.Dir = worktreeDir
 
 	// Allocate a PTY for stdout/stderr so the agent sees a terminal and uses
