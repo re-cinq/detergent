@@ -1,8 +1,6 @@
 package install_test
 
 import (
-	"io"
-	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,29 +24,9 @@ func findProjectRoot() string {
 	return "."
 }
 
-// hasMatchingRelease checks whether the latest GitHub release has assets
-// matching the current binary name ("line_*"). This returns false after a
-// binary rename until a new release is published with the updated name.
-func hasMatchingRelease() bool {
-	resp, err := http.Get("https://api.github.com/repos/re-cinq/assembly-line/releases/latest")
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return false
-	}
-	return strings.Contains(string(body), `"name":"line_`)
-}
-
 func TestInstallScript(t *testing.T) {
 	if _, err := exec.LookPath("docker"); err != nil {
 		t.Skip("docker not available, skipping install script test")
-	}
-
-	if !hasMatchingRelease() {
-		t.Skip("no release with 'line' binary name found (bootstrap after rename)")
 	}
 
 	root := findProjectRoot()
