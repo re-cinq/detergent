@@ -12,7 +12,7 @@ func init() {
 
 var validateCmd = &cobra.Command{
 	Use:   "validate",
-	Short: "Validate a detergent configuration file",
+	Short: "Validate a line configuration file",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if _, err := loadAndValidateConfig(configPath); err != nil {

@@ -14,7 +14,7 @@ func testdataPath(name string) string {
 	return filepath.Join(filepath.Dir(thisFile), "testdata", name)
 }
 
-var _ = Describe("detergent validate", func() {
+var _ = Describe("line validate", func() {
 	Context("with a valid config", func() {
 		It("exits with code 0", func() {
 			cmd := exec.Command(binaryPath, "validate", "--path", testdataPath("valid.yaml"))

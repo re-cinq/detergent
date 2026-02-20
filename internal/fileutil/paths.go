@@ -2,9 +2,9 @@ package fileutil
 
 import "path/filepath"
 
-// DetergentSubdir builds a path to a subdirectory within .detergent.
-func DetergentSubdir(repoDir, subdir string) string {
-	return filepath.Join(repoDir, ".detergent", subdir)
+// LineSubdir builds a path to a subdirectory within .line.
+func LineSubdir(repoDir, subdir string) string {
+	return filepath.Join(repoDir, ".line", subdir)
 }
 
 // ClaudeDir returns the .claude directory path for a repository.

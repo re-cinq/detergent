@@ -1,6 +1,6 @@
-# Detergent
+# Assembly Line
 
-Deterministic agent invocation. Define a chain of agent calls that will get invoked, in sequence, on every commit. Get alerted via the Claude Code statusline when downstream agents make changes, and use the `/detergent-rebase` skill to automatically pull them in.
+Deterministic agent invocation. Define a chain of agent calls that will get invoked, in sequence, on every commit. Get alerted via the Claude Code statusline when downstream agents make changes, and use the `/line-rebase` skill to automatically pull them in.
 
 Kinda like CI, but local.
 
@@ -9,21 +9,21 @@ Everything is in Git, so you lose nothing. If you _also_ use [`claudit`](https:/
 ## Installation
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/re-cinq/detergent/master/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/re-cinq/assembly-line/master/scripts/install.sh | bash
 ```
 
 Then, in your repo:
 
 ```bash
-detergent init # Set up skills
-detergent run # Start the daemon (there's a skill for this too)
-detergent status # See what's going on
-detergent status -f -n 1 # Follow the status, refreshing every 1 second
+line init # Set up skills
+line run # Start the daemon (there's a skill for this too)
+line status # See what's going on
+line status -f -n 1 # Follow the status, refreshing every 1 second
 ```
 
 ## Quick Start
 
-Create a config file `detergent.yaml`:
+Create a config file `line.yaml`:
 
 ```yaml
 agent:
@@ -47,11 +47,11 @@ concerns:
 
 Concerns are processed as an ordered chain: each concern watches the one before it, and the first concern watches the branch specified in `settings.watches` (defaults to `main`).
 
-**Note:** Detergent automatically prepends "You are running non-interactively. Do not ask questions or wait for confirmation." to every concern prompt, so agents proceed autonomously without pausing for user input.
+**Note:** Assembly Line automatically prepends "You are running non-interactively. Do not ask questions or wait for confirmation." to every concern prompt, so agents proceed autonomously without pausing for user input.
 
 ### Permissions
 
-If your agent is Claude Code, you can pre-approve tool permissions instead of using `--dangerously-skip-permissions`. Add an optional `permissions` block — detergent writes it as `.claude/settings.json` in each worktree before invoking the agent:
+If your agent is Claude Code, you can pre-approve tool permissions instead of using `--dangerously-skip-permissions`. Add an optional `permissions` block — line writes it as `.claude/settings.json` in each worktree before invoking the agent:
 
 ```yaml
 permissions:
@@ -69,55 +69,55 @@ Models will absolutely forget things, especially if context is overloaded (there
 
 * **...do it yourself?** As a human, trying to remember to run the same set of quality-check prompts before every commit is a hassle.
 * **...do it in CI?** Leaving these tasks until CI delays feedback, your agent might not be configured to read from CI, and sometimes you don't want to push.
-* **...use a Git hook?** Not being able to commit in a hurry would be inconvenient. Plus, with `detergent` you can tell your main agent to commit with `skip detergent` if you want.
+* **...use a Git hook?** Not being able to commit in a hurry would be inconvenient. Plus, with `line` you can tell your main agent to commit with `skip line` if you want.
 
 ## Usage
 
 ```bash
-# Validate your config (defaults to detergent.yaml)
-detergent validate
+# Validate your config (defaults to line.yaml)
+line validate
 
 # See the concern chain
-detergent viz
+line viz
 
 # Run once and exit
-detergent run --once
+line run --once
 
 # Run as daemon (polls for changes)
-detergent run
+line run
 
 # Check status of each concern
-detergent status
+line status
 
 # Live-updating status (like watch, tails active agent logs)
-detergent status -f
+line status -f
 
 # View agent logs for a concern
-detergent logs security
+line logs security
 
 # Follow agent logs in real-time
-detergent logs -f security
+line logs -f security
 
 # Use a different config file
-detergent run --path my-config.yaml
+line run --path my-config.yaml
 
 # Initialize Claude Code integration (statusline + skills)
-detergent init
+line init
 ```
 
 ## How It Works
 
-1. Detergent watches branches for new commits
+1. Assembly Line watches branches for new commits
 2. When a commit arrives, it creates a worktree for each triggered concern
 3. The agent receives: the prompt + upstream commit messages + diffs
 4. Agent changes are committed with `[CONCERN]` tags and `Triggered-By:` trailers
 5. If no changes needed, a git note records the review
 6. Downstream concerns see upstream commits and can build on them
-7. The statusline shows `✓` next to concerns that are up to date — use `/detergent-rebase` to pull them back into your working branch
+7. The statusline shows `✓` next to concerns that are up to date — use `/line-rebase` to pull them back into your working branch
 
 ### Getting changes back
 
-Agent work accumulates on concern branches (`detergent/security`, `detergent/style`, etc.). The `/detergent-rebase` skill merges the terminal concern's branch back into main:
+Agent work accumulates on concern branches (`line/security`, `line/style`, etc.). The `/line-rebase` skill merges the terminal concern's branch back into main:
 
 1. Finds the terminal concern (the end of the chain — nothing watches it)
 2. Verifies the chain is complete (no concerns still running or failed)
@@ -127,18 +127,18 @@ Agent work accumulates on concern branches (`detergent/security`, `detergent/sty
 
 If anything goes wrong: `git reset --hard pre-rebase-backup`
 
-**Note:** When running as a daemon, detergent automatically reloads `detergent.yaml` at the start of each poll cycle. Config changes take effect immediately without requiring a restart.
+**Note:** When running as a daemon, line automatically reloads `line.yaml` at the start of each poll cycle. Config changes take effect immediately without requiring a restart.
 
 ## Claude Code Integration
 
-`detergent init` sets up:
+`line init` sets up:
 
 - **Statusline** — shows the concern pipeline in Claude Code's status bar:
   ```
   main ─── security ✓ ── docs ⟳ ── style ·
   ```
-  - When on a terminal concern branch that's behind HEAD, displays a bold yellow warning: `⚠ use /detergent-rebase to pick up latest changes`
-- **Skills** — adds `/detergent-start` to start the daemon as a background task and `/detergent-rebase` for rebasing concern branch changes onto their upstream
+  - When on a terminal concern branch that's behind HEAD, displays a bold yellow warning: `⚠ use /line-rebase to pick up latest changes`
+- **Skills** — adds `/line-start` to start the daemon as a background task and `/line-rebase` for rebasing concern branch changes onto their upstream
 
 ### Statusline Symbols
 
@@ -154,15 +154,15 @@ If anything goes wrong: `git reset --hard pre-rebase-backup`
 
 ## Git Conventions
 
-- **Branches**: `detergent/{concern-name}` (configurable prefix)
+- **Branches**: `line/{concern-name}` (configurable prefix)
 - **Commits**: `[SECURITY] Fix SQL injection in login` with `Triggered-By: abc123` trailer
 - **Notes**: `[SECURITY] Reviewed, no changes needed` when agent makes no changes
-- **Skipping processing**: Add `[skip ci]`, `[ci skip]`, `[skip detergent]`, or `[detergent skip]` to commit messages to prevent detergent from processing them
+- **Skipping processing**: Add `[skip ci]`, `[ci skip]`, `[skip line]`, or `[line skip]` to commit messages to prevent line from processing them
 
 ## Development
 
 ```bash
-make build    # Build binary (bin/detergent)
+make build    # Build binary (bin/line)
 make test     # Run acceptance tests
 make lint     # Run linter (requires golangci-lint)
 make fmt      # Format code

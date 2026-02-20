@@ -48,14 +48,14 @@ var _ = Describe("status tracking consistency", func() {
 	var configPath string
 
 	BeforeEach(func() {
-		tmpDir, repoDir = setupTestRepo("detergent-status-consistency-*")
+		tmpDir, repoDir = setupTestRepo("line-status-consistency-*")
 
 		// Add a README for the agent to modify
 		writeFile(filepath.Join(repoDir, "README.md"), "# Test Project\n")
 		runGit(repoDir, "add", "README.md")
 		runGit(repoDir, "commit", "-m", "add README")
 
-		configPath = filepath.Join(repoDir, "detergent.yaml")
+		configPath = filepath.Join(repoDir, "line.yaml")
 		writeFile(configPath, `
 agent:
   command: "sh"
@@ -80,7 +80,7 @@ concerns:
 		snap := statusSnapshot{timestamp: time.Now()}
 
 		// 1. Read raw status JSON file
-		statusPath := filepath.Join(repoDir, ".detergent", "status", "readme.json")
+		statusPath := filepath.Join(repoDir, ".line", "status", "readme.json")
 		if data, err := os.ReadFile(statusPath); err == nil {
 			var s concernStatus
 			if json.Unmarshal(data, &s) == nil {

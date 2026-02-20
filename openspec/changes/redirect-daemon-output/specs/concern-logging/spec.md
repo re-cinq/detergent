@@ -12,11 +12,11 @@ When running in daemon mode, the system SHALL redirect agent stdout and stderr t
 - **THEN** output appears in separate files: one for security, one for style
 
 ### Requirement: Log files located in system temp directory
-The system SHALL create log files in the system temporary directory with the naming pattern `detergent-<concern>.log`.
+The system SHALL create log files in the system temporary directory with the naming pattern `line-<concern>.log`.
 
 #### Scenario: Log file naming
 - **WHEN** an agent runs for concern "security"
-- **THEN** output is written to `<temp-dir>/detergent-security.log`
+- **THEN** output is written to `<temp-dir>/line-security.log`
 
 #### Scenario: Log file created on first agent run
 - **WHEN** an agent runs for a concern for the first time
@@ -60,4 +60,4 @@ The system SHALL display the log file path pattern at daemon startup so users kn
 
 #### Scenario: Log path information at startup
 - **WHEN** the daemon starts
-- **THEN** the terminal shows the log file location pattern (e.g., "Agent logs: /tmp/detergent-<concern>.log")
+- **THEN** the terminal shows the log file location pattern (e.g., "Agent logs: /tmp/line-<concern>.log")

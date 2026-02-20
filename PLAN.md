@@ -1,4 +1,4 @@
-# Detergent: Requirements Specification
+# Assembly Line: Requirements Specification
 
 ## Purpose
 
@@ -39,7 +39,7 @@ The system is configured via a YAML file that defines:
 
 ### Repository Settings
 - Path to the repository (or current directory)
-- Branch prefix for concern output branches (e.g., `detergent/`)
+- Branch prefix for concern output branches (e.g., `line/`)
 - Poll interval for watching branches
 
 ### Concern Definitions
@@ -52,7 +52,7 @@ Each concern specifies:
 
 ```yaml
 repository: .
-branch_prefix: detergent
+branch_prefix: line
 
 concerns:
   - name: deduplication
@@ -82,7 +82,7 @@ settings:
 
 ### Branch Naming
 - Concern output branches are named: `{branch_prefix}/{concern_name}`
-- Example: concern "security" → branch `detergent/security`
+- Example: concern "security" → branch `line/security`
 
 ### Commit Message Format
 ```
@@ -213,12 +213,12 @@ The daemon should provide:
 
 ### Graph Visualization (Terminal)
 
-A `detergent viz` command that shows the configured concern graph in the terminal (see below).
+A `line viz` command that shows the configured concern graph in the terminal (see below).
 
-A `detergent status` command that displays the concern graph in the terminal:
+A `line status` command that displays the concern graph in the terminal:
 
 ```
-$ detergent status
+$ line status
 
 main
  │

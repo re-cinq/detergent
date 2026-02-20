@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"syscall"
 
-	"github.com/re-cinq/detergent/internal/config"
-	"github.com/re-cinq/detergent/internal/fileutil"
+	"github.com/re-cinq/assembly-line/internal/config"
+	"github.com/re-cinq/assembly-line/internal/fileutil"
 )
 
 // loadAndValidateConfig loads a config file and validates it, printing errors to stderr.

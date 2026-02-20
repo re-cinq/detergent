@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/re-cinq/detergent/internal/engine"
+	"github.com/re-cinq/assembly-line/internal/engine"
 )
 
 // ANSI escape codes for terminal colors

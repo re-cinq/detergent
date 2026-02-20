@@ -8,7 +8,7 @@ import (
 )
 
 var _ = Describe("CLI", func() {
-	Describe("detergent --help", func() {
+	Describe("line --help", func() {
 		It("exits with code 0", func() {
 			cmd := exec.Command(binaryPath, "--help")
 			err := cmd.Run()
@@ -31,7 +31,7 @@ var _ = Describe("CLI", func() {
 		})
 	})
 
-	Describe("detergent version", func() {
+	Describe("line version", func() {
 		It("exits with code 0", func() {
 			cmd := exec.Command(binaryPath, "version")
 			err := cmd.Run()
@@ -42,7 +42,7 @@ var _ = Describe("CLI", func() {
 			cmd := exec.Command(binaryPath, "version")
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(output)).To(MatchRegexp(`detergent \S+`))
+			Expect(string(output)).To(MatchRegexp(`line \S+`))
 		})
 	})
 })

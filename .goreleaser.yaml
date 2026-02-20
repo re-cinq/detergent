@@ -3,10 +3,10 @@ version: 2
 builds:
   - env:
       - CGO_ENABLED=0
-    main: ./cmd/detergent
-    binary: detergent
+    main: ./cmd/line
+    binary: line
     ldflags:
-      - -s -w -X github.com/re-cinq/detergent/internal/cli.Version={{.Version}}
+      - -s -w -X github.com/re-cinq/assembly-line/internal/cli.Version={{.Version}}
     goos:
       - darwin
       - linux
@@ -34,4 +34,4 @@ checksum:
 release:
   github:
     owner: re-cinq
-    name: detergent
+    name: assembly-line

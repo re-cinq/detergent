@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/re-cinq/detergent/internal/assets"
-	"github.com/re-cinq/detergent/internal/fileutil"
+	"github.com/re-cinq/assembly-line/internal/assets"
+	"github.com/re-cinq/assembly-line/internal/fileutil"
 	"github.com/spf13/cobra"
 )
 
@@ -18,8 +18,8 @@ func init() {
 
 var initCmd = &cobra.Command{
 	Use:   "init [path]",
-	Short: "Initialize detergent skills and statusline in a repository",
-	Long: `Initialize detergent Claude Code skills and statusline configuration
+	Short: "Initialize line skills and statusline in a repository",
+	Long: `Initialize line Claude Code skills and statusline configuration
 in the target repository (defaults to current directory).
 
 This command:
@@ -69,7 +69,7 @@ func initSkills(repoDir string) ([]string, error) {
 			return err
 		}
 
-		// Target path: .claude/<path> (skills/detergent-rebase/SKILL.md -> .claude/skills/detergent-rebase/SKILL.md)
+		// Target path: .claude/<path> (skills/line-rebase/SKILL.md -> .claude/skills/line-rebase/SKILL.md)
 		target := fileutil.ClaudeSubpath(repoDir, path)
 
 		if d.IsDir() {
@@ -98,10 +98,10 @@ func initSkills(repoDir string) ([]string, error) {
 
 // initStatusline adds or updates the statusline config in .claude/settings.local.json.
 func initStatusline(repoDir string) error {
-	detergentBin, err := os.Executable()
+	lineBin, err := os.Executable()
 	if err != nil {
 		// Fall back to expecting it in PATH
-		detergentBin = "detergent"
+		lineBin = "line"
 	}
 
 	settingsPath := fileutil.ClaudeSubpath(repoDir, "settings.local.json")
@@ -121,7 +121,7 @@ func initStatusline(repoDir string) error {
 
 	// Set statusline
 	settings["statusLine"] = map[string]string{
-		"command": detergentBin + " statusline",
+		"command": lineBin + " statusline",
 		"type":    "command",
 	}
 

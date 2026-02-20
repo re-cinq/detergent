@@ -4,7 +4,7 @@ agent:
 
 settings:
   poll_interval: 10s
-  branch_prefix: "detergent/"
+  branch_prefix: "line/"
   watches: main
 
 concerns:

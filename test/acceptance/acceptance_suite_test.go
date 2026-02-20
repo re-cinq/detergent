@@ -22,9 +22,9 @@ var _ = BeforeSuite(func() {
 	// Build the binary once for all acceptance tests
 	_, thisFile, _, _ := runtime.Caller(0)
 	projectRoot := filepath.Join(filepath.Dir(thisFile), "..", "..")
-	binaryPath = filepath.Join(projectRoot, "bin", "detergent-test")
+	binaryPath = filepath.Join(projectRoot, "bin", "line-test")
 
-	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/detergent")
+	cmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/line")
 	cmd.Dir = projectRoot
 	cmd.Env = append(cmd.Environ(), "CGO_ENABLED=0")
 	output, err := cmd.CombinedOutput()

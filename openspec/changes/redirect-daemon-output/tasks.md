@@ -1,7 +1,7 @@
 ## 1. Log File Management
 
 - [x] 1.1 Add a map to store open log file handles per concern in engine state
-- [x] 1.2 Create helper function to get or create log file for a concern (path: `<temp-dir>/detergent-<concern>.log`, append mode)
+- [x] 1.2 Create helper function to get or create log file for a concern (path: `<temp-dir>/line-<concern>.log`, append mode)
 - [x] 1.3 Add cleanup function to close all open log files on daemon shutdown
 
 ## 2. Agent Output Redirection
@@ -12,7 +12,7 @@
 
 ## 3. Daemon Startup Message
 
-- [x] 3.1 Add log path pattern message to daemon startup output (e.g., "Agent logs: /tmp/detergent-<concern>.log")
+- [x] 3.1 Add log path pattern message to daemon startup output (e.g., "Agent logs: /tmp/line-<concern>.log")
 
 ## 4. Testing
 

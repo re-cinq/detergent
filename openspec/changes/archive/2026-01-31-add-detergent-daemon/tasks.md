@@ -4,24 +4,24 @@ Each slice delivers end-to-end user value with an acceptance test driving the bi
 
 ## Slice 1: I can run the CLI
 - [x] 1.1 Set up Go module, basic CLI structure (cobra or similar)
-- [x] 1.2 `detergent --help` shows available commands
-- [x] 1.3 `detergent --version` shows version
+- [x] 1.2 `line --help` shows available commands
+- [x] 1.3 `line --version` shows version
 - [x] 1.4 **Acceptance test:** invoke binary, verify help output and exit code 0
 
 ## Slice 2: I can validate my config
 - [x] 2.1 Define YAML config schema (concerns, watches, prompts)
-- [x] 2.2 `detergent validate <config>` parses and validates config
+- [x] 2.2 `line validate <config>` parses and validates config
 - [x] 2.3 Reports clear errors for invalid YAML, missing fields, unknown references
 - [x] 2.4 Detects cycles in concern graph
 - [x] 2.5 **Acceptance test:** valid config exits 0, invalid configs exit non-zero with helpful message
 
 ## Slice 3: I can see my concern graph
-- [x] 3.1 `detergent viz <config>` outputs ASCII DAG of concerns
+- [x] 3.1 `line viz <config>` outputs ASCII DAG of concerns
 - [x] 3.2 Shows concern names and what each watches
 - [x] 3.3 **Acceptance test:** invoke viz, verify output matches expected graph structure
 
 ## Slice 4: I can run one pass manually
-- [x] 4.1 `detergent run --once <config>` processes pending commits once, then exits
+- [x] 4.1 `line run --once <config>` processes pending commits once, then exits
 - [x] 4.2 Creates worktree for concern if needed
 - [x] 4.3 Creates output branch if needed (from watched branch)
 - [x] 4.4 Assembles context (diffs, commit messages, prompt)
@@ -30,13 +30,13 @@ Each slice delivers end-to-end user value with an acceptance test driving the bi
 - [x] 4.7 **Acceptance test:** set up git repo, push commit, run once, verify agent was invoked and commit appears on output branch
 
 ## Slice 5: I can see what happened
-- [x] 5.1 `detergent status <config>` shows concern states
+- [x] 5.1 `line status <config>` shows concern states
 - [x] 5.2 Shows last-processed commit per concern
 - [x] 5.3 Shows status indicators (✓ caught up, ◯ pending, ✗ failed)
 - [x] 5.4 **Acceptance test:** run once, then status, verify output reflects processed state
 
 ## Slice 6: I can run continuously
-- [x] 6.1 `detergent run <config>` polls at configurable interval
+- [x] 6.1 `line run <config>` polls at configurable interval
 - [x] 6.2 Detects new commits and processes them
 - [x] 6.3 Runs until interrupted (SIGINT/SIGTERM)
 - [x] 6.4 **Acceptance test:** start daemon, push commit, verify processing, send SIGINT, verify clean exit

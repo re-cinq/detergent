@@ -9,19 +9,19 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe(".detergentignore support", func() {
+var _ = Describe(".lineignore support", func() {
 	var tmpDir string
 	var repoDir string
 
 	configFor := func(repoDir string) string {
-		p := filepath.Join(repoDir, "detergent.yaml")
+		p := filepath.Join(repoDir, "line.yaml")
 		writeFile(p, `
 agent:
   command: "sh"
   args: ["-c", "echo 'reviewed' > agent-review.txt"]
 
 settings:
-  branch_prefix: "detergent/"
+  branch_prefix: "line/"
 
 concerns:
   - name: security
@@ -32,7 +32,7 @@ concerns:
 	}
 
 	BeforeEach(func() {
-		tmpDir, repoDir = setupTestRepo("detergent-ignore-*")
+		tmpDir, repoDir = setupTestRepo("line-ignore-*")
 	})
 
 	AfterEach(func() {
@@ -48,19 +48,19 @@ concerns:
 		Expect(err).NotTo(HaveOccurred(), "first run: %s", string(out))
 
 		// Get commit count on output branch
-		count1 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/security"))
+		count1 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/security"))
 
-		// Add .detergentignore and commit it (this commit itself should be processed)
-		writeFile(filepath.Join(repoDir, ".detergentignore"), ".beads/\ndocs/\n")
-		runGit(repoDir, "add", ".detergentignore")
-		runGit(repoDir, "commit", "-m", "add detergentignore")
+		// Add .lineignore and commit it (this commit itself should be processed)
+		writeFile(filepath.Join(repoDir, ".lineignore"), ".beads/\ndocs/\n")
+		runGit(repoDir, "add", ".lineignore")
+		runGit(repoDir, "commit", "-m", "add lineignore")
 
 		cmd = exec.Command(binaryPath, "run", "--once", "--path", configPath)
 		out, err = cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "second run: %s", string(out))
 
-		count2 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/security"))
-		Expect(count2).NotTo(Equal(count1), "commit adding .detergentignore should be processed")
+		count2 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/security"))
+		Expect(count2).NotTo(Equal(count1), "commit adding .lineignore should be processed")
 
 		// Now commit only ignored files
 		writeFile(filepath.Join(repoDir, ".beads", "issues.jsonl"), `{"id":"test"}`)
@@ -72,7 +72,7 @@ concerns:
 		Expect(err).NotTo(HaveOccurred(), "third run: %s", string(out))
 
 		// Commit count should NOT have increased — commit was skipped
-		count3 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/security"))
+		count3 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/security"))
 		Expect(count3).To(Equal(count2), "commit with only ignored files should be skipped")
 	})
 
@@ -84,16 +84,16 @@ concerns:
 		out, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "first run: %s", string(out))
 
-		// Add .detergentignore
-		writeFile(filepath.Join(repoDir, ".detergentignore"), "docs/\n")
-		runGit(repoDir, "add", ".detergentignore")
-		runGit(repoDir, "commit", "-m", "add detergentignore")
+		// Add .lineignore
+		writeFile(filepath.Join(repoDir, ".lineignore"), "docs/\n")
+		runGit(repoDir, "add", ".lineignore")
+		runGit(repoDir, "commit", "-m", "add lineignore")
 
 		cmd = exec.Command(binaryPath, "run", "--once", "--path", configPath)
 		out, err = cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "second run: %s", string(out))
 
-		count2 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/security"))
+		count2 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/security"))
 
 		// Commit with mixed files (one ignored, one not)
 		writeFile(filepath.Join(repoDir, "docs", "guide.md"), "# Guide\n")
@@ -105,39 +105,39 @@ concerns:
 		out, err = cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "third run: %s", string(out))
 
-		count3 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/security"))
+		count3 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/security"))
 		Expect(count3).NotTo(Equal(count2), "commit with mixed files should be processed")
 	})
 
-	It("always processes commits that modify .detergentignore", func() {
+	It("always processes commits that modify .lineignore", func() {
 		configPath := configFor(repoDir)
 
-		// Add .detergentignore that ignores itself
-		writeFile(filepath.Join(repoDir, ".detergentignore"), ".detergentignore\n")
-		runGit(repoDir, "add", ".detergentignore")
-		runGit(repoDir, "commit", "-m", "add detergentignore")
+		// Add .lineignore that ignores itself
+		writeFile(filepath.Join(repoDir, ".lineignore"), ".lineignore\n")
+		runGit(repoDir, "add", ".lineignore")
+		runGit(repoDir, "commit", "-m", "add lineignore")
 
 		// First run to establish baseline
 		cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 		out, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "first run: %s", string(out))
 
-		count1 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/security"))
+		count1 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/security"))
 
-		// Modify .detergentignore (sole file in commit)
-		writeFile(filepath.Join(repoDir, ".detergentignore"), ".detergentignore\ndocs/\n")
-		runGit(repoDir, "add", ".detergentignore")
-		runGit(repoDir, "commit", "-m", "update detergentignore")
+		// Modify .lineignore (sole file in commit)
+		writeFile(filepath.Join(repoDir, ".lineignore"), ".lineignore\ndocs/\n")
+		runGit(repoDir, "add", ".lineignore")
+		runGit(repoDir, "commit", "-m", "update lineignore")
 
 		cmd = exec.Command(binaryPath, "run", "--once", "--path", configPath)
 		out, err = cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "second run: %s", string(out))
 
-		count2 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/security"))
-		Expect(count2).NotTo(Equal(count1), "commit modifying .detergentignore should always be processed")
+		count2 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/security"))
+		Expect(count2).NotTo(Equal(count1), "commit modifying .lineignore should always be processed")
 	})
 
-	It("behaves normally when no .detergentignore exists", func() {
+	It("behaves normally when no .lineignore exists", func() {
 		configPath := configFor(repoDir)
 
 		// First run
@@ -145,9 +145,9 @@ concerns:
 		out, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "first run: %s", string(out))
 
-		count1 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/security"))
+		count1 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/security"))
 
-		// Commit any file — should be processed normally (no .detergentignore)
+		// Commit any file — should be processed normally (no .lineignore)
 		writeFile(filepath.Join(repoDir, "docs", "guide.md"), "# Guide\n")
 		runGit(repoDir, "add", "docs/guide.md")
 		runGit(repoDir, "commit", "-m", "add docs")
@@ -156,7 +156,7 @@ concerns:
 		out, err = cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "second run: %s", string(out))
 
-		count2 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/security"))
-		Expect(count2).NotTo(Equal(count1), "without .detergentignore, all commits should be processed")
+		count2 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/security"))
+		Expect(count2).NotTo(Equal(count1), "without .lineignore, all commits should be processed")
 	})
 })

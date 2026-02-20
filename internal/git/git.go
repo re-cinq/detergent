@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/re-cinq/detergent/internal/fileutil"
+	"github.com/re-cinq/assembly-line/internal/fileutil"
 )
 
 // Repo wraps git operations for a repository.
@@ -82,9 +82,9 @@ func (r *Repo) DiffForCommit(hash string) (string, error) {
 	return r.run("diff", hash+"~1", hash)
 }
 
-// AddNote adds a git note to a commit under the "detergent" namespace.
+// AddNote adds a git note to a commit under the "line" namespace.
 func (r *Repo) AddNote(commit, message string) error {
-	_, err := r.run("notes", "--ref=detergent", "add", "-f", "-m", message, commit)
+	_, err := r.run("notes", "--ref=line", "add", "-f", "-m", message, commit)
 	return err
 }
 
@@ -93,16 +93,16 @@ func (r *Repo) AddNote(commit, message string) error {
 // This prevents "Author identity unknown" errors in CI environments.
 func (r *Repo) EnsureIdentity() {
 	if _, err := r.run("config", "user.name"); err != nil {
-		_, _ = r.run("config", "user.name", "detergent")
+		_, _ = r.run("config", "user.name", "line")
 	}
 	if _, err := r.run("config", "user.email"); err != nil {
-		_, _ = r.run("config", "user.email", "detergent@localhost")
+		_, _ = r.run("config", "user.email", "line@localhost")
 	}
 }
 
 // WorktreePath returns the expected worktree path for a concern.
 func WorktreePath(repoDir, branchPrefix, concernName string) string {
-	return fileutil.DetergentSubdir(repoDir, filepath.Join("worktrees", branchPrefix+concernName))
+	return fileutil.LineSubdir(repoDir, filepath.Join("worktrees", branchPrefix+concernName))
 }
 
 // FilesChangedInCommit returns the list of file paths changed in a single commit.

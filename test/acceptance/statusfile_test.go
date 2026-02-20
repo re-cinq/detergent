@@ -27,7 +27,7 @@ var _ = Describe("status files", func() {
 	var configPath string
 
 	BeforeEach(func() {
-		tmpDir, repoDir = setupTestRepo("detergent-statusfile-*")
+		tmpDir, repoDir = setupTestRepo("line-statusfile-*")
 	})
 
 	AfterEach(func() {
@@ -35,7 +35,7 @@ var _ = Describe("status files", func() {
 	})
 
 	readStatus := func(concernName string) *concernStatus {
-		path := filepath.Join(repoDir, ".detergent", "status", concernName+".json")
+		path := filepath.Join(repoDir, ".line", "status", concernName+".json")
 		data, err := os.ReadFile(path)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred(), "status file not found: %s", path)
 		var s concernStatus
@@ -45,7 +45,7 @@ var _ = Describe("status files", func() {
 
 	Context("after a successful run with changes", func() {
 		BeforeEach(func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
@@ -74,7 +74,7 @@ concerns:
 
 	Context("after a successful run with no changes (noop)", func() {
 		BeforeEach(func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
@@ -99,7 +99,7 @@ concerns:
 
 	Context("when concern is already caught up", func() {
 		BeforeEach(func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
@@ -129,7 +129,7 @@ concerns:
 
 	Context("when a concern is skipped due to upstream failure", func() {
 		BeforeEach(func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"

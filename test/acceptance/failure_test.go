@@ -15,7 +15,7 @@ var _ = Describe("failure isolation", func() {
 	var configPath string
 
 	BeforeEach(func() {
-		tmpDir, repoDir = setupTestRepo("detergent-failure-*")
+		tmpDir, repoDir = setupTestRepo("line-failure-*")
 
 		// Write a failing agent script and a succeeding one
 		writeFile(filepath.Join(repoDir, "fail-agent.sh"), "#!/bin/sh\nexit 1\n")
@@ -46,7 +46,7 @@ echo "reviewed" > agent-output.txt
 `)
 			os.Chmod(filepath.Join(repoDir, "dispatch-agent.sh"), 0755)
 
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
@@ -82,7 +82,7 @@ concerns:
 
 			// The working concern's output branch should exist
 			branches := runGitOutput(repoDir, "branch")
-			Expect(branches).To(ContainSubstring("detergent/working"))
+			Expect(branches).To(ContainSubstring("line/working"))
 		})
 
 		It("does not advance last-seen for the failed concern", func() {

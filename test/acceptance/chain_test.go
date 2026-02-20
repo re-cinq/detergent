@@ -15,10 +15,10 @@ var _ = Describe("concern chaining", func() {
 	var configPath string
 
 	BeforeEach(func() {
-		tmpDir, repoDir = setupTestRepo("detergent-chain-*")
+		tmpDir, repoDir = setupTestRepo("line-chain-*")
 
 		// Config with A -> B chain: security watches main, docs watches security
-		configPath = filepath.Join(repoDir, "detergent.yaml")
+		configPath = filepath.Join(repoDir, "line.yaml")
 		writeFile(configPath, `
 agent:
   command: "sh"
@@ -45,8 +45,8 @@ concerns:
 
 		// Both output branches should exist
 		branches := runGitOutput(repoDir, "branch")
-		Expect(branches).To(ContainSubstring("detergent/security"))
-		Expect(branches).To(ContainSubstring("detergent/docs"))
+		Expect(branches).To(ContainSubstring("line/security"))
+		Expect(branches).To(ContainSubstring("line/docs"))
 	})
 
 	It("creates commits on the downstream branch with concern tags", func() {
@@ -55,11 +55,11 @@ concerns:
 		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
 		// Check security branch has tagged commit
-		secMsg := runGitOutput(repoDir, "log", "-1", "--format=%s", "detergent/security")
+		secMsg := runGitOutput(repoDir, "log", "-1", "--format=%s", "line/security")
 		Expect(secMsg).To(ContainSubstring("[SECURITY]"))
 
 		// Check docs branch has tagged commit
-		docsMsg := runGitOutput(repoDir, "log", "-1", "--format=%s", "detergent/docs")
+		docsMsg := runGitOutput(repoDir, "log", "-1", "--format=%s", "line/docs")
 		Expect(docsMsg).To(ContainSubstring("[DOCS]"))
 	})
 
@@ -69,11 +69,11 @@ concerns:
 		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
 		// The docs concern's Triggered-By should reference the security branch commit
-		docsBody := runGitOutput(repoDir, "log", "-1", "--format=%B", "detergent/docs")
+		docsBody := runGitOutput(repoDir, "log", "-1", "--format=%B", "line/docs")
 		Expect(docsBody).To(ContainSubstring("Triggered-By:"))
 
 		// Get the security branch HEAD and verify docs references it
-		secHead := strings.TrimSpace(runGitOutput(repoDir, "rev-parse", "detergent/security"))
+		secHead := strings.TrimSpace(runGitOutput(repoDir, "rev-parse", "line/security"))
 		Expect(docsBody).To(ContainSubstring(secHead))
 	})
 })

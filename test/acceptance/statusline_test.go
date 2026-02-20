@@ -10,12 +10,12 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("detergent statusline", func() {
+var _ = Describe("line statusline", func() {
 	var tmpDir string
 	var repoDir string
 
 	BeforeEach(func() {
-		tmpDir, repoDir = setupTestRepo("detergent-statusline-render-*")
+		tmpDir, repoDir = setupTestRepo("line-statusline-render-*")
 	})
 
 	AfterEach(func() {
@@ -24,7 +24,7 @@ var _ = Describe("detergent statusline", func() {
 
 	Context("with a chain config (no forks)", func() {
 		BeforeEach(func() {
-			writeFile(filepath.Join(repoDir, "detergent.yaml"), `
+			writeFile(filepath.Join(repoDir, "line.yaml"), `
 agent:
   command: "sh"
   args: ["-c", "echo noop"]
@@ -69,7 +69,7 @@ concerns:
 
 	Context("with a forking config", func() {
 		BeforeEach(func() {
-			writeFile(filepath.Join(repoDir, "detergent.yaml"), `
+			writeFile(filepath.Join(repoDir, "line.yaml"), `
 agent:
   command: "sh"
   args: ["-c", "echo noop"]
@@ -112,14 +112,14 @@ concerns:
 		})
 	})
 
-	Context("with a non-detergent directory", func() {
+	Context("with a non-line directory", func() {
 		It("exits silently with no output", func() {
-			nonDetergentDir, err := os.MkdirTemp("", "not-detergent-*")
+			nonLineDir, err := os.MkdirTemp("", "not-line-*")
 			Expect(err).NotTo(HaveOccurred())
-			defer os.RemoveAll(nonDetergentDir)
+			defer os.RemoveAll(nonLineDir)
 
 			cmd := exec.Command(binaryPath, "statusline")
-			cmd.Stdin = strings.NewReader(`{"cwd":"` + nonDetergentDir + `"}`)
+			cmd.Stdin = strings.NewReader(`{"cwd":"` + nonLineDir + `"}`)
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(output)).To(BeEmpty())
@@ -146,7 +146,7 @@ concerns:
 
 	Context("after a successful run", func() {
 		BeforeEach(func() {
-			writeFile(filepath.Join(repoDir, "detergent.yaml"), `
+			writeFile(filepath.Join(repoDir, "line.yaml"), `
 agent:
   command: "sh"
   args: ["-c", "echo 'reviewed' > agent-review.txt"]
@@ -156,7 +156,7 @@ concerns:
     watches: main
     prompt: "Security review"
 `)
-			cmd := exec.Command(binaryPath, "run", "--once", "--path", filepath.Join(repoDir, "detergent.yaml"))
+			cmd := exec.Command(binaryPath, "run", "--once", "--path", filepath.Join(repoDir, "line.yaml"))
 			out, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred(), "run failed: %s", string(out))
 		})
@@ -175,7 +175,7 @@ concerns:
 
 	Context("after a noop run (caught up)", func() {
 		BeforeEach(func() {
-			writeFile(filepath.Join(repoDir, "detergent.yaml"), `
+			writeFile(filepath.Join(repoDir, "line.yaml"), `
 agent:
   command: "true"
 
@@ -184,7 +184,7 @@ concerns:
     watches: main
     prompt: "Security review"
 `)
-			cmd := exec.Command(binaryPath, "run", "--once", "--path", filepath.Join(repoDir, "detergent.yaml"))
+			cmd := exec.Command(binaryPath, "run", "--once", "--path", filepath.Join(repoDir, "line.yaml"))
 			out, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred(), "run failed: %s", string(out))
 		})
@@ -202,7 +202,7 @@ concerns:
 
 	Context("when a concern is behind HEAD (pending)", func() {
 		BeforeEach(func() {
-			writeFile(filepath.Join(repoDir, "detergent.yaml"), `
+			writeFile(filepath.Join(repoDir, "line.yaml"), `
 agent:
   command: "true"
 
@@ -211,7 +211,7 @@ concerns:
     watches: main
     prompt: "Security review"
 `)
-			cmd := exec.Command(binaryPath, "run", "--once", "--path", filepath.Join(repoDir, "detergent.yaml"))
+			cmd := exec.Command(binaryPath, "run", "--once", "--path", filepath.Join(repoDir, "line.yaml"))
 			out, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred(), "run failed: %s", string(out))
 
@@ -234,7 +234,7 @@ concerns:
 
 	Context("config discovery walks up directories", func() {
 		It("finds config in parent directory", func() {
-			writeFile(filepath.Join(repoDir, "detergent.yaml"), `
+			writeFile(filepath.Join(repoDir, "line.yaml"), `
 agent:
   command: "sh"
   args: ["-c", "echo noop"]

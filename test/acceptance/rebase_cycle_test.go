@@ -16,10 +16,10 @@ var _ = Describe("post-rebase cycle prevention", func() {
 	var configPath string
 
 	BeforeEach(func() {
-		tmpDir, repoDir = setupTestRepo("detergent-rebase-cycle-*")
+		tmpDir, repoDir = setupTestRepo("line-rebase-cycle-*")
 
 		// Two-concern chain: security watches main, docs watches security
-		configPath = filepath.Join(repoDir, "detergent.yaml")
+		configPath = filepath.Join(repoDir, "line.yaml")
 		writeFile(configPath, `
 agent:
   command: "sh"
@@ -46,12 +46,12 @@ concerns:
 		Expect(err).NotTo(HaveOccurred(), "first run: %s", string(output))
 
 		// Record commit counts on both branches after first run
-		secCount1 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/security"))
-		docsCount1 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/docs"))
+		secCount1 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/security"))
+		docsCount1 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/docs"))
 
-		// Simulate /detergent-rebase: fast-forward main onto detergent/docs
+		// Simulate /line-rebase: fast-forward main onto line/docs
 		runGit(repoDir, "checkout", "main")
-		runGit(repoDir, "rebase", "detergent/docs")
+		runGit(repoDir, "rebase", "line/docs")
 
 		// Run the chain again — should detect agent commits and skip
 		cmd2 := exec.Command(binaryPath, "run", "--once", "--path", configPath)
@@ -59,15 +59,15 @@ concerns:
 		Expect(err).NotTo(HaveOccurred(), "second run: %s", string(output2))
 
 		// Commit counts should NOT have increased — no new agent work
-		secCount2 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/security"))
-		docsCount2 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/docs"))
+		secCount2 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/security"))
+		docsCount2 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/docs"))
 		Expect(secCount2).To(Equal(secCount1), "security branch should have no new commits")
 		Expect(docsCount2).To(Equal(docsCount1), "docs branch should have no new commits")
 	})
 
 	It("soft-resets agent commits and uses Triggered-By trailers", func() {
 		// Use an agent that makes a direct git commit (simulating Claude Code committing)
-		commitConfigPath := filepath.Join(repoDir, "detergent-commit.yaml")
+		commitConfigPath := filepath.Join(repoDir, "line-commit.yaml")
 		writeFile(commitConfigPath, `
 agent:
   command: "sh"
@@ -79,7 +79,7 @@ concerns:
     prompt: "Review for security issues"
 `)
 
-		// Run the chain — the agent will commit directly, but detergent should
+		// Run the chain — the agent will commit directly, but line should
 		// soft-reset that commit and create its own with Triggered-By.
 		cmd := exec.Command(binaryPath, "run", "--once", "--path", commitConfigPath)
 		output, err := cmd.CombinedOutput()
@@ -87,29 +87,29 @@ concerns:
 
 		// The output branch should exist and have a commit
 		branches := runGitOutput(repoDir, "branch")
-		Expect(branches).To(ContainSubstring("detergent/security"))
+		Expect(branches).To(ContainSubstring("line/security"))
 
-		// The tip commit should be detergent's proper commit, not the agent's
-		tipMsg := strings.TrimSpace(runGitOutput(repoDir, "log", "-1", "--format=%B", "detergent/security"))
+		// The tip commit should be line's proper commit, not the agent's
+		tipMsg := strings.TrimSpace(runGitOutput(repoDir, "log", "-1", "--format=%B", "line/security"))
 		Expect(tipMsg).To(ContainSubstring("Triggered-By:"), "commit should have Triggered-By trailer")
 		Expect(tipMsg).NotTo(ContainSubstring("agent did this"), "agent's direct commit message should not be the tip")
 
 		// The agent's file should still be present (changes preserved via soft-reset)
-		wtPath := filepath.Join(repoDir, ".detergent", "worktrees", "detergent/security")
+		wtPath := filepath.Join(repoDir, ".line", "worktrees", "line/security")
 		_, err = os.Stat(filepath.Join(wtPath, "agent-file.txt"))
 		Expect(err).NotTo(HaveOccurred(), "agent's file changes should be preserved")
 
 		// Now simulate rebase back to main and re-run — should NOT re-trigger
 		runGit(repoDir, "checkout", "main")
-		runGit(repoDir, "rebase", "detergent/security")
+		runGit(repoDir, "rebase", "line/security")
 
-		secCount1 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/security"))
+		secCount1 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/security"))
 
 		cmd2 := exec.Command(binaryPath, "run", "--once", "--path", commitConfigPath)
 		output2, err := cmd2.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "second run: %s", string(output2))
 
-		secCount2 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "detergent/security"))
+		secCount2 := strings.TrimSpace(runGitOutput(repoDir, "rev-list", "--count", "line/security"))
 		Expect(secCount2).To(Equal(secCount1), "should not re-trigger after rebase of proper agent commit")
 	})
 
@@ -119,9 +119,9 @@ concerns:
 		output, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "first run: %s", string(output))
 
-		// Simulate /detergent-rebase: fast-forward main onto detergent/docs
+		// Simulate /line-rebase: fast-forward main onto line/docs
 		runGit(repoDir, "checkout", "main")
-		runGit(repoDir, "rebase", "detergent/docs")
+		runGit(repoDir, "rebase", "line/docs")
 
 		// Add a new user commit on main (after the rebase)
 		writeFile(filepath.Join(repoDir, "user-feature.txt"), "new feature\n")
@@ -133,13 +133,13 @@ concerns:
 		writeFile(captureScript, `#!/bin/sh
 ctx=$(cat)
 name=$(echo "$ctx" | grep '# Concern:' | head -1 | awk '{print $NF}')
-printf '%s' "$ctx" > "/tmp/detergent-rebase-test-context-$name.txt"
+printf '%s' "$ctx" > "/tmp/line-rebase-test-context-$name.txt"
 date +%s%N > agent-output.txt
 `)
 		err = os.Chmod(captureScript, 0755)
 		Expect(err).NotTo(HaveOccurred())
 
-		captureConfigPath := filepath.Join(repoDir, "detergent-capture.yaml")
+		captureConfigPath := filepath.Join(repoDir, "line-capture.yaml")
 		writeFile(captureConfigPath, `
 agent:
   command: "`+captureScript+`"
@@ -159,7 +159,7 @@ concerns:
 		Expect(err).NotTo(HaveOccurred(), "second run: %s", string(output2))
 
 		// Read the security concern's captured context (watches external branch main)
-		secContextData, err := os.ReadFile("/tmp/detergent-rebase-test-context-security.txt")
+		secContextData, err := os.ReadFile("/tmp/line-rebase-test-context-security.txt")
 		Expect(err).NotTo(HaveOccurred(), "should have captured security context file")
 		secContext := string(secContextData)
 
@@ -170,7 +170,7 @@ concerns:
 		Expect(secContext).NotTo(ContainSubstring("Triggered-By:"))
 
 		// Clean up
-		os.Remove("/tmp/detergent-rebase-test-context-security.txt")
-		os.Remove("/tmp/detergent-rebase-test-context-docs.txt")
+		os.Remove("/tmp/line-rebase-test-context-security.txt")
+		os.Remove("/tmp/line-rebase-test-context-docs.txt")
 	})
 })

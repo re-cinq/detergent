@@ -39,12 +39,12 @@ func TestInstallScript(t *testing.T) {
 	// Run a clean Debian container that:
 	// 1. Installs curl (needed by install script)
 	// 2. Runs the install script
-	// 3. Verifies detergent is installed and reports a version
+	// 3. Verifies line is installed and reports a version
 	cmd := exec.Command("docker", "run", "--rm",
 		"-v", scriptPath+":/tmp/install.sh:ro",
 		"debian:bookworm-slim",
 		"bash", "-c",
-		"apt-get update -qq && apt-get install -y -qq curl ca-certificates > /dev/null 2>&1 && bash /tmp/install.sh && detergent version",
+		"apt-get update -qq && apt-get install -y -qq curl ca-certificates > /dev/null 2>&1 && bash /tmp/install.sh && line version",
 	)
 
 	out, err := cmd.CombinedOutput()
@@ -55,8 +55,8 @@ func TestInstallScript(t *testing.T) {
 		t.Fatalf("install script failed: %v", err)
 	}
 
-	if !strings.Contains(output, "detergent") {
-		t.Errorf("expected output to contain 'detergent', got:\n%s", output)
+	if !strings.Contains(output, "line") {
+		t.Errorf("expected output to contain 'line', got:\n%s", output)
 	}
 
 	// The installed binary should report a real version, not "dev"

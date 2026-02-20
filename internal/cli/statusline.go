@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/re-cinq/detergent/internal/config"
-	"github.com/re-cinq/detergent/internal/engine"
+	"github.com/re-cinq/assembly-line/internal/config"
+	"github.com/re-cinq/assembly-line/internal/engine"
 	"github.com/spf13/cobra"
 )
 
@@ -32,9 +32,9 @@ var statuslineCmd = &cobra.Command{
 			return nil // silent exit
 		}
 
-		configPath := findDetergentConfig(dir)
+		configPath := findLineConfig(dir)
 		if configPath == "" {
-			return nil // not a detergent project
+			return nil // not a line project
 		}
 
 		cfg, err := config.Load(configPath)
@@ -79,9 +79,9 @@ func resolveProjectDir(input []byte) string {
 	return ci.CWD
 }
 
-// findDetergentConfig walks up from dir looking for detergent.yaml or detergent.yml.
-func findDetergentConfig(dir string) string {
-	return findFileUp(dir, []string{"detergent.yaml", "detergent.yml"})
+// findLineConfig walks up from dir looking for line.yaml or line.yml.
+func findLineConfig(dir string) string {
+	return findFileUp(dir, []string{"line.yaml", "line.yml"})
 }
 
 func renderConcern(name string, concerns map[string]ConcernData) string {
@@ -197,7 +197,7 @@ func renderGraph(data StatuslineOutput) string {
 	return sb.String()
 }
 
-// rebaseHint returns a prompt to use /detergent-rebase if the concern chain is complete
+// rebaseHint returns a prompt to use /line-rebase if the concern chain is complete
 // with modifications ready to land. Returns "" if not applicable.
 func rebaseHint(data StatuslineOutput, concerns map[string]ConcernData, downstream map[string][]string) string {
 	if len(concerns) == 0 {
@@ -234,5 +234,5 @@ func rebaseHint(data StatuslineOutput, concerns map[string]ConcernData, downstre
 		return ""
 	}
 
-	return fmt.Sprintf("\033[1;33m⚠ use /detergent-rebase to pick up latest changes%s", ansiReset)
+	return fmt.Sprintf("\033[1;33m⚠ use /line-rebase to pick up latest changes%s", ansiReset)
 }

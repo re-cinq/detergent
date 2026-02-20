@@ -11,16 +11,16 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("detergent run (daemon mode)", func() {
+var _ = Describe("line run (daemon mode)", func() {
 	var tmpDir string
 	var repoDir string
 	var configPath string
 
 	BeforeEach(func() {
-		tmpDir, repoDir = setupTestRepo("detergent-daemon-*")
+		tmpDir, repoDir = setupTestRepo("line-daemon-*")
 
 		// Use a very short poll interval for testing
-		configPath = filepath.Join(repoDir, "detergent.yaml")
+		configPath = filepath.Join(repoDir, "line.yaml")
 		writeFile(configPath, `
 agent:
   command: "sh"
@@ -55,8 +55,8 @@ concerns:
 		time.Sleep(2 * time.Second)
 
 		// Verify the initial commit was processed
-		branchOut := runGitOutput(repoDir, "branch", "--list", "detergent/security")
-		Expect(branchOut).To(ContainSubstring("detergent/security"))
+		branchOut := runGitOutput(repoDir, "branch", "--list", "line/security")
+		Expect(branchOut).To(ContainSubstring("line/security"))
 
 		// Make a new commit on main
 		writeFile(filepath.Join(repoDir, "new-file.txt"), "new content\n")
@@ -77,7 +77,7 @@ concerns:
 		Expect(outputBuf.String()).To(ContainSubstring("daemon started"))
 
 		// Verify the second commit was processed
-		commitCount := runGitOutput(repoDir, "rev-list", "--count", "detergent/security")
+		commitCount := runGitOutput(repoDir, "rev-list", "--count", "line/security")
 		// Initial commit creates branch (1 ancestor) + agent commit + second trigger's agent commit
 		// At minimum should have more than 1 commit on the output branch
 		count := strings.TrimSpace(commitCount)

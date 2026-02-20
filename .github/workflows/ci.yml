@@ -32,7 +32,7 @@ jobs:
         with:
           go-version: "1.24"
       - name: Build binary
-        run: CGO_ENABLED=0 go build -o bin/detergent ./cmd/detergent
+        run: CGO_ENABLED=0 go build -o bin/line ./cmd/line
       - name: Run acceptance tests
         run: go test ./test/acceptance/... -v
 
@@ -62,7 +62,7 @@ jobs:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
-        run: go build -ldflags "-s -w" -o bin/detergent ./cmd/detergent
+        run: go build -ldflags "-s -w" -o bin/line ./cmd/line
 
   install-test:
     name: Install Script Test
@@ -87,7 +87,7 @@ jobs:
         with:
           go-version: "1.24"
       - name: Build binary
-        run: CGO_ENABLED=0 go build -o bin/detergent ./cmd/detergent
+        run: CGO_ENABLED=0 go build -o bin/line ./cmd/line
       - name: Run acceptance tests
         env:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}

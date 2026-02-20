@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/re-cinq/detergent/internal/cli"
+	"github.com/re-cinq/assembly-line/internal/cli"
 )
 
 func main() {

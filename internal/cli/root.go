@@ -12,9 +12,9 @@ var Version = "dev"
 var configPath string
 
 var rootCmd = &cobra.Command{
-	Use:   "detergent",
+	Use:   "line",
 	Short: "Orchestrate coding agents in a concern-based pipeline",
-	Long: `Detergent is a daemon that orchestrates coding agents through a chain
+	Long: `Assembly Line is a daemon that orchestrates coding agents through a chain
 of concerns. Each concern focuses on a single quality aspect (security,
 style, documentation, etc.) and processes code changes in sequence.
 
@@ -23,7 +23,7 @@ and intent preservation between agents.`,
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVarP(&configPath, "path", "p", "detergent.yaml", "Path to detergent config file")
+	rootCmd.PersistentFlags().StringVarP(&configPath, "path", "p", "line.yaml", "Path to line config file")
 	rootCmd.AddCommand(versionCmd)
 }
 
@@ -31,7 +31,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print the version number",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("detergent %s\n", Version)
+		fmt.Printf("line %s\n", Version)
 	},
 }
 

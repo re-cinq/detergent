@@ -1,30 +1,30 @@
 ---
-name: detergent-rebase
+name: line-rebase
 description: Pull agent changes back into your working branch. Rebases main onto the terminal concern branch, with backup, stash, conflict resolution, and recovery.
 metadata:
-  author: detergent
+  author: line
   version: "2.0"
 ---
 
-Merge the results of a completed detergent concern chain back into the main branch.
+Merge the results of a completed line concern chain back into the main branch.
 
-After detergent processes commits through a chain of concerns (e.g., security → style → docs), the terminal concern's branch holds the accumulated agent output. This skill rebases main onto that branch so the agent's work lands cleanly.
+After line processes commits through a chain of concerns (e.g., security → style → docs), the terminal concern's branch holds the accumulated agent output. This skill rebases main onto that branch so the agent's work lands cleanly.
 
 ---
 
 ## Phase 1: Discover the Concern Chain
 
-1. **Find `detergent.yaml`**
+1. **Find `line.yaml`**
    Look in the repo root, then walk up:
    ```bash
    git rev-parse --show-toplevel
    ```
-   Then check for `detergent.yaml` or `detergent.yml` in that directory.
+   Then check for `line.yaml` or `line.yml` in that directory.
    Read the file.
 
 2. **Parse the concern chain**
    From the YAML config, identify:
-   - The **branch prefix** (from `settings.branch_prefix`, default: `detergent/`)
+   - The **branch prefix** (from `settings.branch_prefix`, default: `line/`)
    - All concerns and their `watches` fields
    - The **terminal concern**: the concern whose name does not appear in any other concern's `watches` field
 
@@ -47,17 +47,17 @@ After detergent processes commits through a chain of concerns (e.g., security �
    ```
    <branch_prefix><terminal_concern_name>
    ```
-   e.g., `detergent/docs`
+   e.g., `line/docs`
 
 4. **Verify the chain is complete**
-   Check `.detergent/status/<concern>.json` for each concern in the chain.
+   Check `.line/status/<concern>.json` for each concern in the chain.
    - If any concern has `"state": "running"`, STOP: "Concern chain is still running (<name> is active). Wait for it to finish."
    - If any concern has `"state": "failed"`, STOP: "Concern <name> failed. Check logs before rebasing."
    - Verify the terminal branch exists:
      ```bash
      git rev-parse --verify <terminal-branch> 2>/dev/null
      ```
-     If it doesn't exist, STOP: "Terminal branch `<name>` does not exist. Has detergent run yet?"
+     If it doesn't exist, STOP: "Terminal branch `<name>` does not exist. Has line run yet?"
 
 ---
 
@@ -97,7 +97,7 @@ After detergent processes commits through a chain of concerns (e.g., security �
 9. **Stash if needed**
    If `HAD_CHANGES` is true:
    ```bash
-   git stash push -m "detergent-rebase-autostash"
+   git stash push -m "line-rebase-autostash"
    ```
    Store `DID_STASH=true`. If the stash fails, STOP — do not proceed with dirty state.
 
@@ -193,6 +193,34 @@ Tell the user: "Rebase aborted after too many conflict rounds. Your branch is re
     - Backup: `pre-rebase-backup` at <shortsha>
     - To undo: git reset --hard pre-rebase-backup
     ```
+
+---
+
+## Phase 8: Advance Daemon State (post-rebase)
+
+After a successful rebase (not aborted), update the daemon's last-seen marker for the
+**first concern** (the one that watches the main branch) so it doesn't re-process the
+agent commits that just landed on main.
+
+16. **Write new HEAD to the first concern's state file**
+    ```bash
+    git rev-parse HEAD
+    ```
+    Write this hash to `.line/state/<first-concern-name>`:
+    ```bash
+    mkdir -p .line/state
+    git rev-parse HEAD > .line/state/<first-concern-name>
+    ```
+
+    The first concern is the one whose `watches` field matches the main branch (the branch
+    you're currently on). This is the same concern identified in Phase 1 as the root of the chain.
+
+    This prevents the daemon from seeing the rebased agent commits as "new work" on the next
+    poll cycle. The engine also detects agent commits independently, but advancing last-seen
+    is a belt-and-suspenders safeguard.
+
+    **Skip this step** if the rebase was aborted — the branch is back to its pre-rebase state
+    and no state update is needed.
 
 ---
 

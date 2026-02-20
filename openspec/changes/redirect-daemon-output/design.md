@@ -1,6 +1,6 @@
 ## Context
 
-Currently, when Detergent runs in daemon mode, agent output (stdout/stderr) streams directly to the terminal. This is the default behavior from `exec.Cmd` in Go. Users running the daemon in a terminal session see interleaved output from multiple concerns mixed with their own shell interactions, making it difficult to:
+Currently, when Assembly Line runs in daemon mode, agent output (stdout/stderr) streams directly to the terminal. This is the default behavior from `exec.Cmd` in Go. Users running the daemon in a terminal session see interleaved output from multiple concerns mixed with their own shell interactions, making it difficult to:
 
 1. Work in the terminal while the daemon runs
 2. Trace which output belongs to which concern
@@ -26,7 +26,7 @@ The engine currently creates commands via `exec.Command` and runs them without e
 
 ### 1. Log file location: System temp directory
 
-**Decision:** Use `os.TempDir()` for log files (e.g., `/tmp/detergent-<concern>.log`)
+**Decision:** Use `os.TempDir()` for log files (e.g., `/tmp/line-<concern>.log`)
 
 **Rationale:**
 - System temp is universally writable, no permissions issues

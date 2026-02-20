@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/re-cinq/detergent/internal/config"
-	"github.com/re-cinq/detergent/internal/engine"
-	"github.com/re-cinq/detergent/internal/fileutil"
+	"github.com/re-cinq/assembly-line/internal/config"
+	"github.com/re-cinq/assembly-line/internal/engine"
+	"github.com/re-cinq/assembly-line/internal/fileutil"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ func init() {
 
 var runCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Run the detergent daemon",
+	Short: "Run the line daemon",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, repoDir, err := loadConfigAndRepo(configPath)
@@ -46,7 +46,7 @@ func runDaemon(cfg *config.Config, repoDir string) error {
 	logMgr := engine.NewLogManager()
 	defer logMgr.Close()
 
-	fmt.Printf("detergent daemon started (polling every %s)\n", cfg.Settings.PollInterval.Duration())
+	fmt.Printf("line daemon started (polling every %s)\n", cfg.Settings.PollInterval.Duration())
 	fmt.Printf("Agent logs: %s\n", engine.LogPath())
 
 	ticker := time.NewTicker(cfg.Settings.PollInterval.Duration())
@@ -60,7 +60,7 @@ func runDaemon(cfg *config.Config, repoDir string) error {
 	for {
 		select {
 		case <-ctx.Done():
-			fmt.Println("detergent daemon stopped")
+			fmt.Println("line daemon stopped")
 			return nil
 		case sig := <-sigCh:
 			fmt.Printf("\nreceived %s, shutting down...\n", sig)

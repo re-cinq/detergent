@@ -43,15 +43,15 @@ func TestFilesMatchIgnorePatterns(t *testing.T) {
 			want:     false,
 		},
 		{
-			name:     ".detergentignore in file list always returns false",
-			files:    []string{".detergentignore"},
-			patterns: []string{".detergentignore"},
+			name:     ".lineignore in file list always returns false",
+			files:    []string{".lineignore"},
+			patterns: []string{".lineignore"},
 			want:     false,
 		},
 		{
-			name:     ".detergentignore mixed with other ignored files returns false",
-			files:    []string{".beads/issues.jsonl", ".detergentignore"},
-			patterns: []string{".beads/", ".detergentignore"},
+			name:     ".lineignore mixed with other ignored files returns false",
+			files:    []string{".beads/issues.jsonl", ".lineignore"},
+			patterns: []string{".beads/", ".lineignore"},
 			want:     false,
 		},
 		{

@@ -15,7 +15,7 @@ var _ = Describe("parallel concern execution", func() {
 	var configPath string
 
 	BeforeEach(func() {
-		tmpDir, repoDir = setupTestRepo("detergent-parallel-*")
+		tmpDir, repoDir = setupTestRepo("line-parallel-*")
 	})
 
 	AfterEach(func() {
@@ -26,7 +26,7 @@ var _ = Describe("parallel concern execution", func() {
 		BeforeEach(func() {
 			// Each agent sleeps 1 second then writes a file.
 			// If parallel: total ~1s. If serial: total ~2s.
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
@@ -48,8 +48,8 @@ concerns:
 			Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
 			branches := runGitOutput(repoDir, "branch")
-			Expect(branches).To(ContainSubstring("detergent/alpha"))
-			Expect(branches).To(ContainSubstring("detergent/beta"))
+			Expect(branches).To(ContainSubstring("line/alpha"))
+			Expect(branches).To(ContainSubstring("line/beta"))
 		})
 
 		It("runs independent concerns concurrently (faster than serial)", func() {
@@ -68,7 +68,7 @@ concerns:
 
 	Context("with dependent concerns (A -> B)", func() {
 		BeforeEach(func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
@@ -91,11 +91,11 @@ concerns:
 
 			// Both should complete, with downstream seeing upstream's output
 			branches := runGitOutput(repoDir, "branch")
-			Expect(branches).To(ContainSubstring("detergent/upstream"))
-			Expect(branches).To(ContainSubstring("detergent/downstream"))
+			Expect(branches).To(ContainSubstring("line/upstream"))
+			Expect(branches).To(ContainSubstring("line/downstream"))
 
 			// Downstream's Triggered-By should reference upstream's branch
-			msg := runGitOutput(repoDir, "log", "-1", "--format=%B", "detergent/downstream")
+			msg := runGitOutput(repoDir, "log", "-1", "--format=%B", "line/downstream")
 			Expect(msg).To(ContainSubstring("Triggered-By:"))
 		})
 	})

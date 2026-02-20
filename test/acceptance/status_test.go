@@ -9,15 +9,15 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("detergent status", func() {
+var _ = Describe("line status", func() {
 	var tmpDir string
 	var repoDir string
 	var configPath string
 
 	BeforeEach(func() {
-		tmpDir, repoDir = setupTestRepo("detergent-status-*")
+		tmpDir, repoDir = setupTestRepo("line-status-*")
 
-		configPath = filepath.Join(repoDir, "detergent.yaml")
+		configPath = filepath.Join(repoDir, "line.yaml")
 		writeFile(configPath, `
 agent:
   command: "sh"
@@ -76,7 +76,7 @@ concerns:
 	Context("with a stale active state (dead PID)", func() {
 		It("shows stale status when process is dead", func() {
 			// Write a fake status file with agent_running state and a dead PID
-			statusDir := filepath.Join(repoDir, ".detergent", "status")
+			statusDir := filepath.Join(repoDir, ".line", "status")
 			Expect(os.MkdirAll(statusDir, 0755)).To(Succeed())
 			writeFile(filepath.Join(statusDir, "security.json"),
 				`{"state":"agent_running","started_at":"2025-01-01T00:00:00Z","head_at_start":"abc123","last_seen":"","pid":99999}`)
@@ -92,7 +92,7 @@ concerns:
 
 	Context("with failed concern", func() {
 		It("shows failed status with error message", func() {
-			failConfigPath := filepath.Join(repoDir, "detergent.yaml")
+			failConfigPath := filepath.Join(repoDir, "line.yaml")
 			writeFile(failConfigPath, `
 agent:
   command: "sh"

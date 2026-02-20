@@ -1,4 +1,4 @@
-module github.com/re-cinq/detergent
+module github.com/re-cinq/assembly-line
 
 go 1.23.0
 

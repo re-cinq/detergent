@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 #
-# detergent installation script
-# Usage: curl -fsSL https://raw.githubusercontent.com/re-cinq/detergent/master/scripts/install.sh | bash
+# line installation script
+# Usage: curl -fsSL https://raw.githubusercontent.com/re-cinq/assembly-line/master/scripts/install.sh | bash
 #
 
 set -euo pipefail
 
-REPO="re-cinq/detergent"
-BINARY="detergent"
+REPO="re-cinq/assembly-line"
+BINARY="line"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 CLEANUP_DIR=""
 
@@ -125,7 +125,7 @@ install_with_go() {
     fi
 
     info "Installing with go install..."
-    go install "github.com/re-cinq/detergent/cmd/detergent@latest"
+    go install "github.com/re-cinq/assembly-line/cmd/line@latest"
 
     local gobin
     gobin=$(go env GOBIN 2>/dev/null)
@@ -159,9 +159,9 @@ install_from_source() {
     version=$(git describe --tags --always 2>/dev/null || echo "dev")
 
     CGO_ENABLED=0 go build \
-        -ldflags "-s -w -X github.com/re-cinq/detergent/internal/cli.Version=${version}" \
+        -ldflags "-s -w -X github.com/re-cinq/assembly-line/internal/cli.Version=${version}" \
         -o "${BINARY}" \
-        ./cmd/detergent
+        ./cmd/line
 
     chmod +x "${BINARY}"
 

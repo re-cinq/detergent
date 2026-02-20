@@ -19,29 +19,29 @@ var _ = Describe("agent output logging", func() {
 
 	BeforeEach(func() {
 		// Remove stale log files before each test (shared /tmp path)
-		os.Remove(filepath.Join(os.TempDir(), "detergent-security.log"))
-		os.Remove(filepath.Join(os.TempDir(), "detergent-style.log"))
+		os.Remove(filepath.Join(os.TempDir(), "line-security.log"))
+		os.Remove(filepath.Join(os.TempDir(), "line-style.log"))
 
-		tmpDir, repoDir = setupTestRepo("detergent-logging-*")
+		tmpDir, repoDir = setupTestRepo("line-logging-*")
 	})
 
 	AfterEach(func() {
 		cleanupTestRepo(repoDir, tmpDir)
 		// Clean up log files
-		os.Remove(filepath.Join(os.TempDir(), "detergent-security.log"))
-		os.Remove(filepath.Join(os.TempDir(), "detergent-style.log"))
+		os.Remove(filepath.Join(os.TempDir(), "line-security.log"))
+		os.Remove(filepath.Join(os.TempDir(), "line-style.log"))
 	})
 
 	Describe("run --once", func() {
 		It("writes agent output to log file, not terminal", func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
   args: ["-c", "echo 'AGENT_OUTPUT_MARKER' && echo 'reviewed' > review.txt"]
 
 settings:
-  branch_prefix: "detergent/"
+  branch_prefix: "line/"
 
 concerns:
   - name: security
@@ -57,21 +57,21 @@ concerns:
 			Expect(string(output)).NotTo(ContainSubstring("AGENT_OUTPUT_MARKER"))
 
 			// Agent output SHOULD appear in log file
-			logPath := filepath.Join(os.TempDir(), "detergent-security.log")
+			logPath := filepath.Join(os.TempDir(), "line-security.log")
 			logContent, err := os.ReadFile(logPath)
 			Expect(err).NotTo(HaveOccurred(), "log file should exist")
 			Expect(string(logContent)).To(ContainSubstring("AGENT_OUTPUT_MARKER"))
 		})
 
 		It("creates separate log files per concern", func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
-  args: ["-c", "echo 'OUTPUT_FROM_'$DETERGENT_CONCERN && touch reviewed.txt"]
+  args: ["-c", "echo 'OUTPUT_FROM_'$LINE_CONCERN && touch reviewed.txt"]
 
 settings:
-  branch_prefix: "detergent/"
+  branch_prefix: "line/"
 
 concerns:
   - name: security
@@ -84,13 +84,13 @@ concerns:
 
 			// Set env var so agent can report which concern it's running for
 			cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
-			cmd.Env = append(os.Environ(), "DETERGENT_CONCERN=test")
+			cmd.Env = append(os.Environ(), "LINE_CONCERN=test")
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
 			// Both log files should exist
-			securityLog := filepath.Join(os.TempDir(), "detergent-security.log")
-			styleLog := filepath.Join(os.TempDir(), "detergent-style.log")
+			securityLog := filepath.Join(os.TempDir(), "line-security.log")
+			styleLog := filepath.Join(os.TempDir(), "line-style.log")
 
 			_, err = os.Stat(securityLog)
 			Expect(err).NotTo(HaveOccurred(), "security log file should exist")
@@ -100,14 +100,14 @@ concerns:
 		})
 
 		It("includes commit hash header in log file", func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
   args: ["-c", "echo 'agent ran' > review.txt"]
 
 settings:
-  branch_prefix: "detergent/"
+  branch_prefix: "line/"
 
 concerns:
   - name: security
@@ -122,7 +122,7 @@ concerns:
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
-			logPath := filepath.Join(os.TempDir(), "detergent-security.log")
+			logPath := filepath.Join(os.TempDir(), "line-security.log")
 			logContent, err := os.ReadFile(logPath)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -133,14 +133,14 @@ concerns:
 
 	Describe("PTY support", func() {
 		It("provides a TTY to the agent stdout", func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
   args: ["-c", "test -t 1 && echo TTY_YES || echo TTY_NO"]
 
 settings:
-  branch_prefix: "detergent/"
+  branch_prefix: "line/"
 
 concerns:
   - name: security
@@ -152,7 +152,7 @@ concerns:
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
-			logPath := filepath.Join(os.TempDir(), "detergent-security.log")
+			logPath := filepath.Join(os.TempDir(), "line-security.log")
 			logContent, err := os.ReadFile(logPath)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(logContent)).To(ContainSubstring("TTY_YES"),
@@ -164,7 +164,7 @@ concerns:
 				Skip("python3 not found")
 			}
 
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			// Python uses full buffering on pipes, line buffering on TTYs.
 			// Without the PTY, STREAMING_MARKER would stay in Python's
 			// buffer and not appear in the log until the process exits
@@ -175,7 +175,7 @@ agent:
   args: ["-c", "import time; print('STREAMING_MARKER'); time.sleep(5)"]
 
 settings:
-  branch_prefix: "detergent/"
+  branch_prefix: "line/"
 
 concerns:
   - name: security
@@ -183,7 +183,7 @@ concerns:
     prompt: "Review"
 `)
 
-			logPath := filepath.Join(os.TempDir(), "detergent-security.log")
+			logPath := filepath.Join(os.TempDir(), "line-security.log")
 
 			cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 			err := cmd.Start()
@@ -200,9 +200,9 @@ concerns:
 				ContainSubstring("STREAMING_MARKER"),
 				"agent output should appear in log before process exits (real-time streaming)")
 
-			// Verify detergent is still running (agent hasn't exited yet)
+			// Verify line is still running (agent hasn't exited yet)
 			Expect(cmd.Process.Signal(syscall.Signal(0))).To(Succeed(),
-				"detergent should still be running — output was streamed, not buffered until exit")
+				"line should still be running — output was streamed, not buffered until exit")
 
 			cmd.Wait()
 		})
@@ -210,7 +210,7 @@ concerns:
 
 	Describe("daemon mode", func() {
 		It("shows daemon messages on terminal but not agent output", func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
@@ -218,7 +218,7 @@ agent:
 
 settings:
   poll_interval: 1s
-  branch_prefix: "detergent/"
+  branch_prefix: "line/"
 
 concerns:
   - name: security
@@ -226,7 +226,7 @@ concerns:
     prompt: "Review"
 `)
 
-			logPath := filepath.Join(os.TempDir(), "detergent-security.log")
+			logPath := filepath.Join(os.TempDir(), "line-security.log")
 
 			cmd := exec.Command(binaryPath, "run", "--path", configPath)
 			cmd.Dir = repoDir

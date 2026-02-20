@@ -3,7 +3,7 @@ package cli
 import (
 	"fmt"
 
-	"github.com/re-cinq/detergent/internal/config"
+	"github.com/re-cinq/assembly-line/internal/config"
 	"github.com/spf13/cobra"
 )
 

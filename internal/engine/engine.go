@@ -15,9 +15,9 @@ import (
 	"github.com/creack/pty"
 	ignore "github.com/sabhiram/go-gitignore"
 
-	"github.com/re-cinq/detergent/internal/config"
-	"github.com/re-cinq/detergent/internal/fileutil"
-	gitops "github.com/re-cinq/detergent/internal/git"
+	"github.com/re-cinq/assembly-line/internal/config"
+	"github.com/re-cinq/assembly-line/internal/fileutil"
+	gitops "github.com/re-cinq/assembly-line/internal/git"
 )
 
 // LogManager manages per-concern log files for agent output.
@@ -34,7 +34,7 @@ func NewLogManager() *LogManager {
 }
 
 // getLogFile returns the log file for a concern, creating it if necessary.
-// Log files are stored in the system temp directory with the pattern detergent-<concern>.log.
+// Log files are stored in the system temp directory with the pattern line-<concern>.log.
 func (lm *LogManager) getLogFile(concernName string) (*os.File, error) {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()
@@ -76,12 +76,12 @@ func (lm *LogManager) truncateLogFile(concernName string) error {
 
 // LogPath returns the log file path pattern for display purposes.
 func LogPath() string {
-	return filepath.Join(os.TempDir(), "detergent-<concern>.log")
+	return filepath.Join(os.TempDir(), "line-<concern>.log")
 }
 
 // LogPathFor returns the log file path for a specific concern.
 func LogPathFor(concernName string) string {
-	return filepath.Join(os.TempDir(), fmt.Sprintf("detergent-%s.log", concernName))
+	return filepath.Join(os.TempDir(), fmt.Sprintf("line-%s.log", concernName))
 }
 
 // Close closes all open log files.
@@ -553,7 +553,7 @@ func assembleContext(repo *gitops.Repo, cfg *config.Config, concern config.Conce
 
 func invokeAgent(cfg *config.Config, worktreeDir, context string, output io.Writer) error {
 	// Write context to a file in the worktree (available to the agent)
-	contextFile := filepath.Join(worktreeDir, ".detergent-context")
+	contextFile := filepath.Join(worktreeDir, ".line-context")
 	if err := os.WriteFile(contextFile, []byte(context), 0644); err != nil {
 		return err
 	}
@@ -651,10 +651,10 @@ func rebaseWorktree(worktreeDir, targetBranch string) error {
 	return repo.Rebase(targetBranch)
 }
 
-// loadIgnorePatterns reads a .detergentignore file from the repo root.
+// loadIgnorePatterns reads a .lineignore file from the repo root.
 // Returns nil if the file does not exist.
 func loadIgnorePatterns(repoDir string) *ignore.GitIgnore {
-	path := filepath.Join(repoDir, ".detergentignore")
+	path := filepath.Join(repoDir, ".lineignore")
 	gi, err := ignore.CompileIgnoreFile(path)
 	if err != nil {
 		return nil
@@ -663,13 +663,13 @@ func loadIgnorePatterns(repoDir string) *ignore.GitIgnore {
 }
 
 // filesMatchIgnorePatterns returns true if all files match the ignore patterns.
-// Returns false if gi is nil, files is empty, or .detergentignore itself is in the list.
+// Returns false if gi is nil, files is empty, or .lineignore itself is in the list.
 func filesMatchIgnorePatterns(files []string, gi *ignore.GitIgnore) bool {
 	if gi == nil || len(files) == 0 {
 		return false
 	}
 	for _, f := range files {
-		if f == ".detergentignore" {
+		if f == ".lineignore" {
 			return false
 		}
 		if !gi.MatchesPath(f) {
@@ -693,7 +693,7 @@ func allFilesIgnored(repo *gitops.Repo, hash string, gi *ignore.GitIgnore) bool 
 }
 
 // allCommitsSkipped returns true if every commit between lastSeen and head
-// contains a skip marker ([skip ci], [ci skip], [skip detergent], [detergent skip]).
+// contains a skip marker ([skip ci], [ci skip], [skip line], [line skip]).
 // When skipAgentCommits is true, commits with a Triggered-By trailer are also
 // treated as skippable. This is used for concerns watching external branches
 // (like main) where agent commits arrived via rebase and should not re-trigger.
@@ -725,11 +725,11 @@ func hasSkipMarker(msg string) bool {
 	lower := strings.ToLower(msg)
 	return strings.Contains(lower, "[skip ci]") ||
 		strings.Contains(lower, "[ci skip]") ||
-		strings.Contains(lower, "[skip detergent]") ||
-		strings.Contains(lower, "[detergent skip]")
+		strings.Contains(lower, "[skip line]") ||
+		strings.Contains(lower, "[line skip]")
 }
 
-// isAgentCommit checks if a commit message was produced by the detergent agent
+// isAgentCommit checks if a commit message was produced by the assembly-line agent
 // or by a known AI coding tool. Agent commits contain a "Triggered-By:" trailer
 // (see commitChanges). As a safety net, commits with a Co-Authored-By line
 // matching known AI tool signatures are also treated as agent commits.

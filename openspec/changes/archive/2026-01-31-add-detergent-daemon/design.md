@@ -1,4 +1,4 @@
-# Design: Detergent Daemon
+# Design: Assembly Line Daemon
 
 ## Context
 

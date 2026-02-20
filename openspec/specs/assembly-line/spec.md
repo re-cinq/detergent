@@ -1,7 +1,8 @@
-# Detergent Daemon Specification
+# line Specification
 
-## ADDED Requirements
-
+## Purpose
+TBD - created by archiving change add-line-daemon. Update Purpose after archive.
+## Requirements
 ### Requirement: Concern Definition
 The system SHALL allow users to define concerns via YAML configuration. Each concern MUST specify a name, watched branch, and prompt. The concern name MUST be used in branch naming and commit tagging.
 
@@ -100,10 +101,10 @@ If an agent fails, the system SHALL log the error, skip updating the last-seen c
 ---
 
 ### Requirement: Status Display
-The system SHALL provide a `detergent status` command that displays the concern graph with current state. Status indicators MUST include: caught up (✓), processing (⟳), waiting (◯), and failed (✗).
+The system SHALL provide a `line status` command that displays the concern graph with current state. Status indicators MUST include: caught up (✓), processing (⟳), waiting (◯), and failed (✗).
 
 #### Scenario: Status command output
-- **WHEN** user runs `detergent status`
+- **WHEN** user runs `line status`
 - **THEN** the terminal displays the concern graph as ASCII art
 - **AND** each concern shows its current status indicator
 - **AND** each concern shows its last-processed commit hash
@@ -115,6 +116,7 @@ When a concern runs for the first time and its output branch doesn't exist, the 
 
 #### Scenario: First run creates branch
 - **WHEN** concern "security" runs for the first time
-- **AND** branch `detergent/security` does not exist
+- **AND** branch `line/security` does not exist
 - **THEN** the branch is created from the watched branch
 - **AND** a worktree is created for the branch
+

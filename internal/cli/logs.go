@@ -5,7 +5,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/re-cinq/detergent/internal/engine"
+	"github.com/re-cinq/assembly-line/internal/engine"
 	"github.com/spf13/cobra"
 )
 

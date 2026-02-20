@@ -16,7 +16,7 @@ type Config struct {
 }
 
 // Permissions mirrors the Claude Code .claude/settings.json permissions block.
-// When set, detergent writes this into each worktree before invoking the agent.
+// When set, line writes this into each worktree before invoking the agent.
 type Permissions struct {
 	Allow []string `yaml:"allow" json:"allow"`
 	Deny  []string `yaml:"deny,omitempty" json:"deny,omitempty"`
@@ -75,7 +75,7 @@ func parse(data []byte) (*Config, error) {
 	}
 
 	if cfg.Settings.BranchPrefix == "" {
-		cfg.Settings.BranchPrefix = "detergent/"
+		cfg.Settings.BranchPrefix = "line/"
 	}
 	if cfg.Settings.PollInterval == 0 {
 		cfg.Settings.PollInterval = Duration(30 * time.Second)

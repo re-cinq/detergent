@@ -15,10 +15,10 @@ var _ = Describe("no-change reviews", func() {
 	var configPath string
 
 	BeforeEach(func() {
-		tmpDir, repoDir = setupTestRepo("detergent-nochange-*")
+		tmpDir, repoDir = setupTestRepo("line-nochange-*")
 
 		// Agent that does nothing (no file changes)
-		configPath = filepath.Join(repoDir, "detergent.yaml")
+		configPath = filepath.Join(repoDir, "line.yaml")
 		writeFile(configPath, `
 agent:
   command: "true"
@@ -41,7 +41,7 @@ concerns:
 
 		// The output branch should exist and point to the same commit as main
 		mainHead := strings.TrimSpace(runGitOutput(repoDir, "rev-parse", "main"))
-		secHead := strings.TrimSpace(runGitOutput(repoDir, "rev-parse", "detergent/security"))
+		secHead := strings.TrimSpace(runGitOutput(repoDir, "rev-parse", "line/security"))
 		Expect(secHead).To(Equal(mainHead))
 	})
 
@@ -52,7 +52,7 @@ concerns:
 
 		// Check the git note on the initial commit
 		mainHead := strings.TrimSpace(runGitOutput(repoDir, "rev-parse", "main"))
-		noteCmd := exec.Command("git", "notes", "--ref=detergent", "show", mainHead)
+		noteCmd := exec.Command("git", "notes", "--ref=line", "show", mainHead)
 		noteCmd.Dir = repoDir
 		noteOut, err := noteCmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "note output: %s", string(noteOut))
@@ -76,7 +76,7 @@ concerns:
 		Expect(err).NotTo(HaveOccurred(), "first run: %s", string(output))
 
 		// Output branch now has a concern commit on top of main
-		secHead1 := strings.TrimSpace(runGitOutput(repoDir, "rev-parse", "detergent/security"))
+		secHead1 := strings.TrimSpace(runGitOutput(repoDir, "rev-parse", "line/security"))
 		mainHead1 := strings.TrimSpace(runGitOutput(repoDir, "rev-parse", "main"))
 		Expect(secHead1).NotTo(Equal(mainHead1), "security branch should have its own commit")
 
@@ -101,7 +101,7 @@ concerns:
 
 		// The output branch should contain the new main commit (rebase succeeded)
 		mainHead2 := strings.TrimSpace(runGitOutput(repoDir, "rev-parse", "main"))
-		secLog := runGitOutput(repoDir, "log", "--format=%H", "detergent/security")
+		secLog := runGitOutput(repoDir, "log", "--format=%H", "line/security")
 		Expect(secLog).To(ContainSubstring(mainHead2), "output branch should contain latest main commit after rebase")
 	})
 
@@ -124,7 +124,7 @@ concerns:
 		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
 		// Both branches should exist (docs could process because security fast-forwarded)
-		Expect(runGitOutput(repoDir, "branch")).To(ContainSubstring("detergent/security"))
-		Expect(runGitOutput(repoDir, "branch")).To(ContainSubstring("detergent/docs"))
+		Expect(runGitOutput(repoDir, "branch")).To(ContainSubstring("line/security"))
+		Expect(runGitOutput(repoDir, "branch")).To(ContainSubstring("line/docs"))
 	})
 })

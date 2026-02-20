@@ -4,7 +4,7 @@ schema: spec-driven
 # This is shown to AI when creating artifacts.
 context: |
   ## Purpose
-  Detergent is a daemon that orchestrates coding agents in a concern-based pipeline. Each agent focuses on a single quality concern (security, deduplication, style, etc.). Changes flow through a directed graph of concerns, with Git providing the audit trail and intent preservation.
+  Assembly Line is a daemon that orchestrates coding agents in a concern-based pipeline. Each agent focuses on a single quality concern (security, deduplication, style, etc.). Changes flow through a directed graph of concerns, with Git providing the audit trail and intent preservation.
 
   ## Tech Stack
   - Go (daemon implementation)

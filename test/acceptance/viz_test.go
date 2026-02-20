@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("detergent viz", func() {
+var _ = Describe("line viz", func() {
 	Context("with a simple chain (main -> security -> docs)", func() {
 		It("exits with code 0", func() {
 			cmd := exec.Command(binaryPath, "viz", "--path", testdataPath("valid.yaml"))

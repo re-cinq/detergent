@@ -9,23 +9,23 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("detergent run --once", func() {
+var _ = Describe("line run --once", func() {
 	var tmpDir string
 	var repoDir string
 	var configPath string
 
 	BeforeEach(func() {
-		tmpDir, repoDir = setupTestRepo("detergent-test-*")
+		tmpDir, repoDir = setupTestRepo("line-test-*")
 
 		// Write the config that uses a simple agent
-		configPath = filepath.Join(repoDir, "detergent.yaml")
+		configPath = filepath.Join(repoDir, "line.yaml")
 		writeFile(configPath, `
 agent:
   command: "sh"
   args: ["-c", "echo 'reviewed by agent' > agent-review.txt"]
 
 settings:
-  branch_prefix: "detergent/"
+  branch_prefix: "line/"
 
 concerns:
   - name: security
@@ -49,9 +49,9 @@ concerns:
 		output, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
-		// Check that detergent/security branch exists
-		out := runGitOutput(repoDir, "branch", "--list", "detergent/security")
-		Expect(out).To(ContainSubstring("detergent/security"))
+		// Check that line/security branch exists
+		out := runGitOutput(repoDir, "branch", "--list", "line/security")
+		Expect(out).To(ContainSubstring("line/security"))
 	})
 
 	It("creates a commit on the output branch with the concern tag", func() {
@@ -59,8 +59,8 @@ concerns:
 		output, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
-		// Check the latest commit on detergent/security
-		msg := runGitOutput(repoDir, "log", "-1", "--format=%s", "detergent/security")
+		// Check the latest commit on line/security
+		msg := runGitOutput(repoDir, "log", "-1", "--format=%s", "line/security")
 		Expect(msg).To(ContainSubstring("[SECURITY]"))
 	})
 
@@ -69,20 +69,20 @@ concerns:
 		output, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
-		msg := runGitOutput(repoDir, "log", "-1", "--format=%B", "detergent/security")
+		msg := runGitOutput(repoDir, "log", "-1", "--format=%B", "line/security")
 		Expect(msg).To(ContainSubstring("Triggered-By:"))
 	})
 
 	It("pipes context to agent stdin", func() {
 		// Use an agent that reads from stdin and writes it to a file
-		stdinConfigPath := filepath.Join(repoDir, "detergent-stdin.yaml")
+		stdinConfigPath := filepath.Join(repoDir, "line-stdin.yaml")
 		writeFile(stdinConfigPath, `
 agent:
   command: "sh"
   args: ["-c", "cat > stdin-received.txt"]
 
 settings:
-  branch_prefix: "detergent/"
+  branch_prefix: "line/"
 
 concerns:
   - name: security
@@ -94,7 +94,7 @@ concerns:
 		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
 		// Verify the agent received context via stdin by checking the file it wrote
-		wtPath := filepath.Join(repoDir, ".detergent", "worktrees", "detergent", "security")
+		wtPath := filepath.Join(repoDir, ".line", "worktrees", "line", "security")
 		stdinContent, err := os.ReadFile(filepath.Join(wtPath, "stdin-received.txt"))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(stdinContent)).To(ContainSubstring("# Concern: security"))
@@ -102,14 +102,14 @@ concerns:
 	})
 
 	It("writes permissions settings to worktree when configured", func() {
-		permConfigPath := filepath.Join(repoDir, "detergent-perms.yaml")
+		permConfigPath := filepath.Join(repoDir, "line-perms.yaml")
 		writeFile(permConfigPath, `
 agent:
   command: "sh"
   args: ["-c", "cat .claude/settings.json > settings-snapshot.txt"]
 
 settings:
-  branch_prefix: "detergent/"
+  branch_prefix: "line/"
 
 permissions:
   allow:
@@ -127,7 +127,7 @@ concerns:
 		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
 		// The agent captured the settings file - check it was written correctly
-		wtPath := filepath.Join(repoDir, ".detergent", "worktrees", "detergent", "security")
+		wtPath := filepath.Join(repoDir, ".line", "worktrees", "line", "security")
 		snapshot, err := os.ReadFile(filepath.Join(wtPath, "settings-snapshot.txt"))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(snapshot)).To(ContainSubstring(`"allow"`))
@@ -138,14 +138,14 @@ concerns:
 
 	It("does not write permissions when not configured", func() {
 		// Use the default config (no permissions block)
-		noPermConfigPath := filepath.Join(repoDir, "detergent-noperm.yaml")
+		noPermConfigPath := filepath.Join(repoDir, "line-noperm.yaml")
 		writeFile(noPermConfigPath, `
 agent:
   command: "sh"
   args: ["-c", "test -f .claude/settings.json && echo EXISTS || echo MISSING"]
 
 settings:
-  branch_prefix: "detergent/"
+  branch_prefix: "line/"
 
 concerns:
   - name: security
@@ -157,7 +157,7 @@ concerns:
 		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
 		// Verify .claude/settings.json was NOT created in the worktree
-		wtPath := filepath.Join(repoDir, ".detergent", "worktrees", "detergent", "security")
+		wtPath := filepath.Join(repoDir, ".line", "worktrees", "line", "security")
 		_, err = os.Stat(filepath.Join(wtPath, ".claude", "settings.json"))
 		Expect(os.IsNotExist(err)).To(BeTrue(), "settings.json should not exist when permissions not configured")
 	})
@@ -168,14 +168,14 @@ concerns:
 		Expect(err).NotTo(HaveOccurred(), "first run: %s", string(out1))
 
 		// Get commit count after first run
-		count1 := runGitOutput(repoDir, "rev-list", "--count", "detergent/security")
+		count1 := runGitOutput(repoDir, "rev-list", "--count", "line/security")
 
 		cmd2 := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 		out2, err := cmd2.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "second run: %s", string(out2))
 
 		// Commit count should be the same
-		count2 := runGitOutput(repoDir, "rev-list", "--count", "detergent/security")
+		count2 := runGitOutput(repoDir, "rev-list", "--count", "line/security")
 		Expect(count2).To(Equal(count1))
 	})
 })

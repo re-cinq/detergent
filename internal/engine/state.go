@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/re-cinq/detergent/internal/fileutil"
+	"github.com/re-cinq/assembly-line/internal/fileutil"
 )
 
 // State constants
@@ -30,7 +30,7 @@ const (
 
 // stateDir returns the state directory path for a repo.
 func stateDir(repoDir string) string {
-	return fileutil.DetergentSubdir(repoDir, "state")
+	return fileutil.LineSubdir(repoDir, "state")
 }
 
 // stateFilePath returns the full path to a concern's state file.
@@ -65,7 +65,7 @@ type ConcernStatus struct {
 
 // statusDir returns the status directory path for a repo.
 func statusDir(repoDir string) string {
-	return fileutil.DetergentSubdir(repoDir, "status")
+	return fileutil.LineSubdir(repoDir, "status")
 }
 
 // statusFilePath returns the full path to a concern's status JSON file.

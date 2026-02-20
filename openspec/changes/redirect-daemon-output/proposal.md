@@ -5,7 +5,7 @@ When running in daemon mode, agent output streams directly to the terminal. This
 ## What Changes
 
 - Agent stdout/stderr redirected to log files instead of the terminal
-- Log files created in system temp directory, named by concern (e.g., `/tmp/detergent-security.log`)
+- Log files created in system temp directory, named by concern (e.g., `/tmp/line-security.log`)
 - Each agent invocation prefixed with the commit hash being processed, providing context for log readers
 - Daemon status messages (startup, shutdown, poll errors) remain on terminal for immediate feedback
 

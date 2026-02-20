@@ -34,13 +34,13 @@ type graphEdge struct {
 	To   string `json:"to"`
 }
 
-var _ = Describe("detergent statusline-data", func() {
+var _ = Describe("line statusline-data", func() {
 	var tmpDir string
 	var repoDir string
 	var configPath string
 
 	BeforeEach(func() {
-		tmpDir, repoDir = setupTestRepo("detergent-statusline-*")
+		tmpDir, repoDir = setupTestRepo("line-statusline-*")
 	})
 
 	AfterEach(func() {
@@ -49,7 +49,7 @@ var _ = Describe("detergent statusline-data", func() {
 
 	Context("with a chain config before any run", func() {
 		BeforeEach(func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
@@ -115,7 +115,7 @@ concerns:
 
 	Context("after a successful run", func() {
 		BeforeEach(func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
@@ -162,7 +162,7 @@ concerns:
 
 	Context("normalization: idle + caught up + no last_result", func() {
 		BeforeEach(func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "true"
@@ -192,7 +192,7 @@ concerns:
 
 	Context("normalization: idle + behind HEAD", func() {
 		BeforeEach(func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "true"
@@ -225,7 +225,7 @@ concerns:
 
 	Context("has_unpicked_commits detection", func() {
 		BeforeEach(func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
@@ -258,14 +258,14 @@ concerns:
 			Expect(err).NotTo(HaveOccurred())
 
 			text := stripANSI(string(output))
-			Expect(text).To(ContainSubstring("/detergent-rebase"))
+			Expect(text).To(ContainSubstring("/line-rebase"))
 		})
 
 	})
 
 	Context("has_unpicked_commits is false for noop agent", func() {
 		BeforeEach(func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "true"
@@ -293,7 +293,7 @@ concerns:
 
 	Context("stale PID detection", func() {
 		BeforeEach(func() {
-			configPath = filepath.Join(repoDir, "detergent.yaml")
+			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "true"
@@ -304,7 +304,7 @@ concerns:
     prompt: "Security review"
 `)
 			// Write a fake status file with agent_running state and a dead PID
-			statusDir := filepath.Join(repoDir, ".detergent", "status")
+			statusDir := filepath.Join(repoDir, ".line", "status")
 			Expect(os.MkdirAll(statusDir, 0755)).To(Succeed())
 			writeFile(filepath.Join(statusDir, "security.json"),
 				`{"state":"agent_running","started_at":"2025-01-01T00:00:00Z","head_at_start":"abc123","last_seen":"","pid":99999}`)
