@@ -101,6 +101,88 @@ concerns:
 		Expect(string(stdinContent)).To(ContainSubstring("Review for security issues"))
 	})
 
+	It("uses default preamble when none configured", func() {
+		stdinConfigPath := filepath.Join(repoDir, "line-default-preamble.yaml")
+		writeFile(stdinConfigPath, `
+agent:
+  command: "sh"
+  args: ["-c", "cat > stdin-received.txt"]
+
+settings:
+  branch_prefix: "line/"
+
+concerns:
+  - name: security
+    watches: main
+    prompt: "Review for security issues"
+`)
+		cmd := exec.Command(binaryPath, "run", "--once", "--path", stdinConfigPath)
+		output, err := cmd.CombinedOutput()
+		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
+
+		wtPath := filepath.Join(repoDir, ".line", "worktrees", "line", "security")
+		content, err := os.ReadFile(filepath.Join(wtPath, "stdin-received.txt"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(content)).To(ContainSubstring("You are running non-interactively"))
+	})
+
+	It("uses global preamble when configured", func() {
+		stdinConfigPath := filepath.Join(repoDir, "line-global-preamble.yaml")
+		writeFile(stdinConfigPath, `
+agent:
+  command: "sh"
+  args: ["-c", "cat > stdin-received.txt"]
+
+settings:
+  branch_prefix: "line/"
+
+preamble: "You are a custom global agent. Proceed silently."
+
+concerns:
+  - name: security
+    watches: main
+    prompt: "Review for security issues"
+`)
+		cmd := exec.Command(binaryPath, "run", "--once", "--path", stdinConfigPath)
+		output, err := cmd.CombinedOutput()
+		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
+
+		wtPath := filepath.Join(repoDir, ".line", "worktrees", "line", "security")
+		content, err := os.ReadFile(filepath.Join(wtPath, "stdin-received.txt"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(content)).To(ContainSubstring("You are a custom global agent"))
+		Expect(string(content)).NotTo(ContainSubstring("non-interactively"))
+	})
+
+	It("uses per-concern preamble over global preamble", func() {
+		stdinConfigPath := filepath.Join(repoDir, "line-concern-preamble.yaml")
+		writeFile(stdinConfigPath, `
+agent:
+  command: "sh"
+  args: ["-c", "cat > stdin-received.txt"]
+
+settings:
+  branch_prefix: "line/"
+
+preamble: "Global preamble that should be overridden."
+
+concerns:
+  - name: security
+    watches: main
+    prompt: "Review for security issues"
+    preamble: "Per-concern preamble for security reviews."
+`)
+		cmd := exec.Command(binaryPath, "run", "--once", "--path", stdinConfigPath)
+		output, err := cmd.CombinedOutput()
+		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
+
+		wtPath := filepath.Join(repoDir, ".line", "worktrees", "line", "security")
+		content, err := os.ReadFile(filepath.Join(wtPath, "stdin-received.txt"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(content)).To(ContainSubstring("Per-concern preamble for security reviews"))
+		Expect(string(content)).NotTo(ContainSubstring("Global preamble that should be overridden"))
+	})
+
 	It("writes permissions settings to worktree when configured", func() {
 		permConfigPath := filepath.Join(repoDir, "line-perms.yaml")
 		writeFile(permConfigPath, `

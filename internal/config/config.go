@@ -13,6 +13,7 @@ type Config struct {
 	Settings    Settings     `yaml:"settings"`
 	Concerns    []Concern    `yaml:"concerns"`
 	Permissions *Permissions `yaml:"permissions,omitempty"`
+	Preamble    string       `yaml:"preamble,omitempty"`
 }
 
 // Permissions mirrors the Claude Code .claude/settings.json permissions block.
@@ -54,11 +55,28 @@ func (d Duration) Duration() time.Duration {
 }
 
 type Concern struct {
-	Name    string   `yaml:"name"`
-	Watches string   `yaml:"watches"`
-	Prompt  string   `yaml:"prompt"`
-	Command string   `yaml:"command,omitempty"`
-	Args    []string `yaml:"args,omitempty"`
+	Name     string   `yaml:"name"`
+	Watches  string   `yaml:"watches"`
+	Prompt   string   `yaml:"prompt"`
+	Command  string   `yaml:"command,omitempty"`
+	Args     []string `yaml:"args,omitempty"`
+	Preamble string   `yaml:"preamble,omitempty"`
+}
+
+// DefaultPreamble is the preamble prepended to every concern prompt when no
+// custom preamble is configured.
+const DefaultPreamble = "You are running non-interactively. Do not ask questions or wait for confirmation.\nIf something is unclear, make your best judgement and proceed.\nDo not run git commit — your changes will be committed automatically."
+
+// ResolvePreamble returns the effective preamble for a concern.
+// Per-concern preamble takes priority, then global config preamble, then DefaultPreamble.
+func (cfg *Config) ResolvePreamble(c Concern) string {
+	if c.Preamble != "" {
+		return c.Preamble
+	}
+	if cfg.Preamble != "" {
+		return cfg.Preamble
+	}
+	return DefaultPreamble
 }
 
 func Load(path string) (*Config, error) {

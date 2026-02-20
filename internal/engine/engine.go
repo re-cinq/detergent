@@ -524,7 +524,7 @@ func assembleContext(repo *gitops.Repo, cfg *config.Config, concern config.Conce
 	skipAgent := WatchesExternalBranch(cfg, concern)
 
 	var sb strings.Builder
-	sb.WriteString("You are running non-interactively. Do not ask questions or wait for confirmation.\nIf something is unclear, make your best judgement and proceed.\nDo not run git commit — your changes will be committed automatically.\n\n")
+	sb.WriteString(cfg.ResolvePreamble(concern) + "\n\n")
 	sb.WriteString("# Concern: " + concern.Name + "\n\n")
 	sb.WriteString("## Prompt\n\n")
 	sb.WriteString(concern.Prompt + "\n\n")
