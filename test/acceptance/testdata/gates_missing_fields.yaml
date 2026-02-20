@@ -1,0 +1,12 @@
+agent:
+  command: "echo"
+
+concerns:
+  - name: security
+    prompt: "check"
+
+gates:
+  - name: ""
+    run: "echo ok"
+  - name: lint
+    run: ""

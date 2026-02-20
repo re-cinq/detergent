@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/re-cinq/assembly-line/internal/assets"
+	"github.com/re-cinq/assembly-line/internal/config"
 	"github.com/re-cinq/assembly-line/internal/fileutil"
 	"github.com/spf13/cobra"
 )
@@ -54,6 +55,13 @@ This command:
 			return fmt.Errorf("configuring statusline: %w", err)
 		}
 		fmt.Println("  config .claude/settings.local.json (statusline)")
+
+		// Install pre-commit hook if gates are configured
+		if cfg, err := config.Load(configPath); err == nil && len(cfg.Gates) > 0 {
+			if err := initPreCommitHook(absDir); err != nil {
+				return fmt.Errorf("installing pre-commit hook: %w", err)
+			}
+		}
 
 		fmt.Println("\nDone.")
 		return nil
@@ -128,5 +136,35 @@ func initStatusline(repoDir string) error {
 	if err := fileutil.WriteJSON(settingsPath, settings); err != nil {
 		return fmt.Errorf("writing settings: %w", err)
 	}
+	return nil
+}
+
+// initPreCommitHook installs a .git/hooks/pre-commit script that runs `line gate`.
+func initPreCommitHook(repoDir string) error {
+	hookDir := filepath.Join(repoDir, ".git", "hooks")
+	hookPath := filepath.Join(hookDir, "pre-commit")
+
+	// Don't clobber an existing hook
+	if _, err := os.Stat(hookPath); err == nil {
+		fmt.Printf("  skip   .git/hooks/pre-commit (already exists)\n")
+		return nil
+	}
+
+	lineBin, err := os.Executable()
+	if err != nil {
+		lineBin = "line"
+	}
+
+	content := fmt.Sprintf("#!/bin/sh\n%s gate\n", lineBin)
+
+	if err := os.MkdirAll(hookDir, 0o755); err != nil {
+		return fmt.Errorf("creating hooks directory: %w", err)
+	}
+
+	if err := os.WriteFile(hookPath, []byte(content), 0o755); err != nil {
+		return fmt.Errorf("writing pre-commit hook: %w", err)
+	}
+
+	fmt.Println("  hook   .git/hooks/pre-commit")
 	return nil
 }

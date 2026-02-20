@@ -12,8 +12,15 @@ type Config struct {
 	Agent       AgentConfig  `yaml:"agent"`
 	Settings    Settings     `yaml:"settings"`
 	Concerns    []Concern    `yaml:"concerns"`
+	Gates       []Gate       `yaml:"gates,omitempty"`
 	Permissions *Permissions `yaml:"permissions,omitempty"`
 	Preamble    string       `yaml:"preamble,omitempty"`
+}
+
+// Gate defines a pre-commit quality gate (linter, formatter, type checker, etc.).
+type Gate struct {
+	Name string `yaml:"name"`
+	Run  string `yaml:"run"`
 }
 
 // Permissions mirrors the Claude Code .claude/settings.json permissions block.
@@ -150,6 +157,28 @@ func Validate(cfg *Config) []error {
 		errs = append(errs, cycleErr)
 	}
 
+	errs = append(errs, ValidateGates(cfg.Gates)...)
+
+	return errs
+}
+
+// ValidateGates checks that all gates have non-empty names and run commands,
+// and that gate names are unique.
+func ValidateGates(gates []Gate) []error {
+	var errs []error
+	names := make(map[string]bool)
+	for i, g := range gates {
+		if g.Name == "" {
+			errs = append(errs, fmt.Errorf("gates[%d]: name is required", i))
+		} else if names[g.Name] {
+			errs = append(errs, fmt.Errorf("gates[%d]: duplicate name %q", i, g.Name))
+		} else {
+			names[g.Name] = true
+		}
+		if g.Run == "" {
+			errs = append(errs, fmt.Errorf("gates[%d]: run is required", i))
+		}
+	}
 	return errs
 }
 

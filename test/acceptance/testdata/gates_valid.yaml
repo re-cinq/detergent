@@ -1,0 +1,17 @@
+agent:
+  command: "echo"
+  args: ["no-op"]
+
+settings:
+  poll_interval: 10s
+  watches: main
+
+concerns:
+  - name: security
+    prompt: "Review for security vulnerabilities"
+
+gates:
+  - name: lint
+    run: "echo lint passed"
+  - name: fmt
+    run: "echo fmt passed"

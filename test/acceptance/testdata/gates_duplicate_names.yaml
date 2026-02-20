@@ -1,0 +1,12 @@
+agent:
+  command: "echo"
+
+concerns:
+  - name: security
+    prompt: "check"
+
+gates:
+  - name: lint
+    run: "echo first"
+  - name: lint
+    run: "echo second"
