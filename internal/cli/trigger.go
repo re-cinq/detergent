@@ -54,6 +54,14 @@ var triggerCmd = &cobra.Command{
 			runCmd.Stderr = nil
 			runCmd.SysProcAttr = &syscall.SysProcAttr{Setsid: true}
 
+			// Strip CLAUDECODE env var so the runner can invoke Claude
+			// agents even when triggered from within a Claude Code session
+			for _, e := range os.Environ() {
+				if !strings.HasPrefix(e, "CLAUDECODE=") {
+					runCmd.Env = append(runCmd.Env, e)
+				}
+			}
+
 			if err := runCmd.Start(); err != nil {
 				return fmt.Errorf("spawning runner: %w", err)
 			}
