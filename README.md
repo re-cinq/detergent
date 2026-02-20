@@ -40,21 +40,13 @@ concerns:
 
   - name: docs
     prompt: "Ensure public functions have clear documentation."
+    args: ["--dangerously-skip-permissions", "--model", "haiku", "-p"]
 
   - name: style
     prompt: "Fix any code style issues."
 ```
 
-Concerns are processed as an ordered chain: each concern watches the one before it, and the first concern watches the branch specified in `settings.watches` (defaults to `main`).
-
-Individual concerns can override the global `command` and `args` to use a different agent or model:
-
-```yaml
-  - name: docs
-    prompt: "Ensure public functions have clear documentation."
-    command: claude
-    args: ["--dangerously-skip-permissions", "--model", "haiku", "-p"]
-```
+Concerns are processed as an ordered chain: each concern watches the one before it, and the first concern watches the branch specified in `settings.watches` (defaults to `main`). Individual concerns can override the global `command` and `args` to use a different agent or model (as shown with `docs` above).
 
 **Note:** Assembly Line automatically prepends "You are running non-interactively. Do not ask questions or wait for confirmation." to every concern prompt, so agents proceed autonomously without pausing for user input.
 
