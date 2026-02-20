@@ -530,23 +530,30 @@ func assembleContext(repo *gitops.Repo, cfg *config.Config, concern config.Conce
 	sb.WriteString(concern.Prompt + "\n\n")
 	sb.WriteString("## New commits to review\n\n")
 
+	// List commit hashes and messages (no diffs — the agent can inspect
+	// them via git in the worktree, keeping the prompt size bounded).
+	var userCommits int
 	err = forEachCommitMessage(repo, commits, func(hash, msg string) error {
 		if skipAgent && isAgentCommit(msg) {
 			return nil
 		}
-		sb.WriteString("### Commit " + hash[:8] + "\n")
-		sb.WriteString("Message: " + msg + "\n\n")
-
-		// Try to get diff (may fail for initial commit)
-		diff, err := repo.DiffForCommit(hash)
-		if err == nil && diff != "" {
-			sb.WriteString("```diff\n" + diff + "\n```\n\n")
-		}
+		sb.WriteString("- " + hash[:8] + " " + strings.SplitN(msg, "\n", 2)[0] + "\n")
+		userCommits++
 		return nil
 	})
 	if err != nil {
 		return "", err
 	}
+
+	sb.WriteString("\n## How to inspect changes\n\n")
+	if lastSeen != "" {
+		sb.WriteString("To see all changes since the last review:\n")
+		sb.WriteString("```\ngit diff " + lastSeen[:8] + ".." + head[:8] + "\n```\n\n")
+	} else {
+		sb.WriteString("This is the first review. To see changes in the most recent commit:\n")
+		sb.WriteString("```\ngit diff " + head[:8] + "~1.." + head[:8] + "\n```\n\n")
+	}
+	sb.WriteString(fmt.Sprintf("There are %d new commit(s) to review. Use `git log` and `git diff` to inspect them as needed.\n", userCommits))
 
 	return sb.String(), nil
 }
