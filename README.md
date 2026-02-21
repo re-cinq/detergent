@@ -121,7 +121,7 @@ line init
 1. Assembly Line watches branches for new commits
 2. When a commit arrives, it creates a worktree for each triggered concern
 3. The agent receives: the prompt + upstream commit messages + diffs
-4. Agent changes are committed with `[CONCERN]` tags and `Triggered-By:` trailers
+4. Agent changes are committed with `[CONCERN]` tags and `Triggered-By:` trailers (pre-commit hooks are skipped — no agent is present after the runner exits)
 5. If no changes needed, a git note records the review
 6. Downstream concerns see upstream commits and can build on them
 7. The statusline shows `✓` next to concerns that are up to date — use `/line-rebase` to pull them back into your working branch
@@ -168,12 +168,13 @@ If anything goes wrong: `git reset --hard pre-rebase-backup`
 - **Branches**: `line/{concern-name}` (configurable prefix)
 - **Commits**: `[SECURITY] Fix SQL injection in login` with `Triggered-By: abc123` trailer
 - **Notes**: `[SECURITY] Reviewed, no changes needed` when agent makes no changes
+- **Agent detection**: Runner commits are identified solely by the `Triggered-By:` trailer. `Co-Authored-By:` lines from AI coding tools (Claude Code, Copilot, Cursor) are ignored — those commits are processed normally by the concern chain
 - **Skipping processing**: Add `[skip ci]`, `[ci skip]`, `[skip line]`, or `[line skip]` to commit messages to prevent line from processing them
 
 ## Development
 
 ```bash
-make build    # Build binary (bin/line)
+make build    # Build binary (bin/line); auto-codesigns on macOS
 make test     # Run acceptance tests
 make lint     # Run linter (requires golangci-lint)
 make fmt      # Format code
