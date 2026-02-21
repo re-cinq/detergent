@@ -12,6 +12,8 @@ const (
 	ansiYellow      = "\033[33m"
 	ansiRed         = "\033[31m"
 	ansiDim         = "\033[2m"
+	ansiDarkGrey    = "\033[90m"
+	ansiLightGrey   = "\033[37m"
 	ansiBoldMagenta = "\033[1;35m"
 	ansiReset       = "\033[0m"
 )

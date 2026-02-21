@@ -109,9 +109,6 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool
 		fmt.Fprintln(w, formatStatus(engine.StateIdle, "result", sourceBranch, msg))
 	}
 
-	// Show runner status
-	fmt.Fprintln(w, formatRunner(repoDir))
-
 	var activeConcerns []string
 
 	for _, c := range cfg.Concerns {
@@ -178,6 +175,10 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool
 		}
 	}
 
+	// Show runner status after concerns
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, formatRunner(repoDir))
+
 	// In follow mode, show last few log lines for active concerns
 	if showLogs && len(activeConcerns) > 0 {
 		for _, name := range activeConcerns {
@@ -230,14 +231,14 @@ func readLastLines(path string, n int) string {
 // formatRunner returns a coloured runner status line.
 func formatRunner(repoDir string) string {
 	if !engine.IsRunnerAlive(repoDir) {
-		return fmt.Sprintf("  %s⊘  %-20s  not running%s", ansiRed, "runner", ansiReset)
+		return fmt.Sprintf("  %s·  %-20s  inactive%s", ansiDarkGrey, "line runner", ansiReset)
 	}
 	pid := engine.ReadPID(repoDir)
 	since := ""
 	if info, err := os.Stat(engine.PIDPath(repoDir)); err == nil {
 		since = info.ModTime().Format("15:04")
 	}
-	return fmt.Sprintf("  %s·  %-20s  alive since %s (PID %d)%s", ansiDim, "runner", since, pid, ansiReset)
+	return fmt.Sprintf("  %s·  %-20s  alive since %s (PID %d)%s", ansiLightGrey, "line runner", since, pid, ansiReset)
 }
 
 func short(hash string) string {
