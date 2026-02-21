@@ -20,7 +20,7 @@ func init() {
 
 var statuslineCmd = &cobra.Command{
 	Use:   "statusline",
-	Short: "Render concern chain for Claude Code statusline (reads JSON from stdin)",
+	Short: "Render station line for Claude Code statusline (reads JSON from stdin)",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		input, err := io.ReadAll(os.Stdin)
 		if err != nil {
@@ -84,30 +84,30 @@ func findLineConfig(dir string) string {
 	return findFileUp(dir, []string{"line.yaml", "line.yml"})
 }
 
-func renderConcern(name string, concerns map[string]ConcernData) string {
-	c := concerns[name]
+func renderStation(name string, stations map[string]StationData) string {
+	c := stations[name]
 	sym, clr := stateDisplay(c.State, c.LastResult)
 	return fmt.Sprintf("%s%s %s%s", clr, name, sym, ansiReset)
 }
 
-// buildChain follows single-child edges from name into a linear chain.
-func buildChain(name string, downstream map[string][]string) []string {
-	chain := []string{name}
+// buildLine follows single-child edges from name into a linear line.
+func buildLine(name string, downstream map[string][]string) []string {
+	line := []string{name}
 	for {
-		children := downstream[chain[len(chain)-1]]
+		children := downstream[line[len(line)-1]]
 		if len(children) != 1 {
 			break
 		}
-		chain = append(chain, children[0])
+		line = append(line, children[0])
 	}
-	return chain
+	return line
 }
 
 // collectBranches collects all fork arms rooted at name via DFS.
 func collectBranches(name string, downstream map[string][]string) [][]string {
-	chain := buildChain(name, downstream)
-	last := chain[len(chain)-1]
-	result := [][]string{chain}
+	line := buildLine(name, downstream)
+	last := line[len(line)-1]
+	result := [][]string{line}
 	children := downstream[last]
 	if len(children) > 1 {
 		for _, child := range children {
@@ -117,23 +117,23 @@ func collectBranches(name string, downstream map[string][]string) [][]string {
 	return result
 }
 
-func renderChain(chain []string, concerns map[string]ConcernData) string {
-	parts := make([]string, len(chain))
-	for i, name := range chain {
-		parts[i] = renderConcern(name, concerns)
+func renderLine(line []string, stations map[string]StationData) string {
+	parts := make([]string, len(line))
+	for i, name := range line {
+		parts[i] = renderStation(name, stations)
 	}
 	return strings.Join(parts, " ── ")
 }
 
 // renderGraph produces the full ANSI-colored graph string from statusline data.
 func renderGraph(data StatuslineOutput) string {
-	if len(data.Concerns) == 0 {
+	if len(data.Stations) == 0 {
 		return ""
 	}
 
-	concerns := make(map[string]ConcernData)
-	for _, c := range data.Concerns {
-		concerns[c.Name] = c
+	stations := make(map[string]StationData)
+	for _, c := range data.Stations {
+		stations[c.Name] = c
 	}
 
 	// Build downstream adjacency: parent -> [children]
@@ -150,7 +150,7 @@ func renderGraph(data StatuslineOutput) string {
 	for _, r := range data.Roots {
 		rootSet[r] = true
 	}
-	for _, c := range data.Concerns {
+	for _, c := range data.Stations {
 		if rootSet[c.Name] {
 			if _, seen := branchRoots[c.Watches]; !seen {
 				branchOrder = append(branchOrder, c.Watches)
@@ -170,16 +170,16 @@ func renderGraph(data StatuslineOutput) string {
 		}
 
 		if len(arms) == 1 {
-			sb.WriteString(fmt.Sprintf("%s ─── %s", branch, renderChain(arms[0], concerns)))
+			sb.WriteString(fmt.Sprintf("%s ─── %s", branch, renderLine(arms[0], stations)))
 		} else {
-			sb.WriteString(fmt.Sprintf("%s ─┬─ %s", branch, renderChain(arms[0], concerns)))
+			sb.WriteString(fmt.Sprintf("%s ─┬─ %s", branch, renderLine(arms[0], stations)))
 			padding := strings.Repeat(" ", len(branch)+2)
 			for i, arm := range arms[1:] {
 				connector := "├"
 				if i == len(arms)-2 { // last arm
 					connector = "└"
 				}
-				sb.WriteString(fmt.Sprintf("\n%s%s─ %s", padding, connector, renderChain(arm, concerns)))
+				sb.WriteString(fmt.Sprintf("\n%s%s─ %s", padding, connector, renderLine(arm, stations)))
 			}
 		}
 
@@ -188,8 +188,8 @@ func renderGraph(data StatuslineOutput) string {
 		}
 	}
 
-	// Check if the chain is complete with results ready to rebase
-	if hint := rebaseHint(data, concerns, downstream); hint != "" {
+	// Check if the line is complete with results ready to rebase
+	if hint := rebaseHint(data, stations, downstream); hint != "" {
 		sb.WriteString("\n")
 		sb.WriteString(hint)
 	}
@@ -197,39 +197,39 @@ func renderGraph(data StatuslineOutput) string {
 	return sb.String()
 }
 
-// rebaseHint returns a prompt to use /line-rebase if the concern chain is complete
+// rebaseHint returns a prompt to use /line-rebase if the station line is complete
 // with modifications ready to land. Returns "" if not applicable.
-func rebaseHint(data StatuslineOutput, concerns map[string]ConcernData, downstream map[string][]string) string {
-	if len(concerns) == 0 {
+func rebaseHint(data StatuslineOutput, stations map[string]StationData, downstream map[string][]string) string {
+	if len(stations) == 0 {
 		return ""
 	}
 
-	// Find terminal concerns (not in any downstream edge's From)
+	// Find terminal stations (not in any downstream edge's From)
 	hasChildren := make(map[string]bool)
 	for from := range downstream {
 		hasChildren[from] = true
 	}
 	var terminals []string
-	for name := range concerns {
+	for name := range stations {
 		if !hasChildren[name] {
 			terminals = append(terminals, name)
 		}
 	}
 
-	// Only support linear chains (single terminal)
+	// Only support linear lines (single terminal)
 	if len(terminals) != 1 {
 		return ""
 	}
 
-	// All concerns must be idle
-	for _, c := range concerns {
+	// All stations must be idle
+	for _, c := range stations {
 		switch c.State {
 		case engine.StateChangeDetected, engine.StateAgentRunning, engine.StateCommitting, engine.StateFailed, "pending":
 			return ""
 		}
 	}
 
-	// The terminal concern branch must have commits ahead of the root watched branch
+	// The terminal station branch must have commits ahead of the root watched branch
 	if !data.HasUnpickedCommits {
 		return ""
 	}

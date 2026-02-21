@@ -33,26 +33,26 @@ func stateDir(repoDir string) string {
 	return fileutil.LineSubdir(repoDir, "state")
 }
 
-// stateFilePath returns the full path to a concern's state file.
-func stateFilePath(repoDir, concernName string) string {
-	return filepath.Join(stateDir(repoDir), concernName)
+// stateFilePath returns the full path to a station's state file.
+func stateFilePath(repoDir, stationName string) string {
+	return filepath.Join(stateDir(repoDir), stationName)
 }
 
-// LastSeen returns the last-seen commit hash for a concern, or "" if none.
-func LastSeen(repoDir, concernName string) (string, error) {
-	path := stateFilePath(repoDir, concernName)
+// LastSeen returns the last-seen commit hash for a station, or "" if none.
+func LastSeen(repoDir, stationName string) (string, error) {
+	path := stateFilePath(repoDir, stationName)
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return "", nil
 	}
 	if err != nil {
-		return "", fmt.Errorf("reading last-seen for %s: %w", concernName, err)
+		return "", fmt.Errorf("reading last-seen for %s: %w", stationName, err)
 	}
 	return strings.TrimSpace(string(data)), nil
 }
 
-// ConcernStatus represents the current lifecycle state of a concern.
-type ConcernStatus struct {
+// StationStatus represents the current lifecycle state of a station.
+type StationStatus struct {
 	State       string `json:"state"`                   // idle, change_detected, agent_running, committing, failed, skipped
 	LastResult  string `json:"last_result,omitempty"`   // noop, modified
 	StartedAt   string `json:"started_at,omitempty"`    // RFC3339
@@ -67,13 +67,13 @@ func statusDir(repoDir string) string {
 	return fileutil.LineSubdir(repoDir, "status")
 }
 
-// statusFilePath returns the full path to a concern's status JSON file.
-func statusFilePath(repoDir, concernName string) string {
-	return filepath.Join(statusDir(repoDir), concernName+".json")
+// statusFilePath returns the full path to a station's status JSON file.
+func statusFilePath(repoDir, stationName string) string {
+	return filepath.Join(statusDir(repoDir), stationName+".json")
 }
 
-// WriteStatus writes a concern's status to its JSON status file.
-func WriteStatus(repoDir, concernName string, status *ConcernStatus) error {
+// WriteStatus writes a station's status to its JSON status file.
+func WriteStatus(repoDir, stationName string, status *StationStatus) error {
 	dir := statusDir(repoDir)
 	if err := fileutil.EnsureDir(dir); err != nil {
 		return err
@@ -82,22 +82,22 @@ func WriteStatus(repoDir, concernName string, status *ConcernStatus) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(statusFilePath(repoDir, concernName), data, 0644)
+	return os.WriteFile(statusFilePath(repoDir, stationName), data, 0644)
 }
 
-// ReadStatus reads a concern's status from its JSON status file.
-func ReadStatus(repoDir, concernName string) (*ConcernStatus, error) {
-	path := statusFilePath(repoDir, concernName)
+// ReadStatus reads a station's status from its JSON status file.
+func ReadStatus(repoDir, stationName string) (*StationStatus, error) {
+	path := statusFilePath(repoDir, stationName)
 	data, err := os.ReadFile(path)
 	if os.IsNotExist(err) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("reading status for %s: %w", concernName, err)
+		return nil, fmt.Errorf("reading status for %s: %w", stationName, err)
 	}
-	var status ConcernStatus
+	var status StationStatus
 	if err := json.Unmarshal(data, &status); err != nil {
-		return nil, fmt.Errorf("parsing status for %s: %w", concernName, err)
+		return nil, fmt.Errorf("parsing status for %s: %w", stationName, err)
 	}
 	return &status, nil
 }
@@ -129,13 +129,13 @@ func IsProcessAlive(pid int) bool {
 	return err == nil
 }
 
-// ResetActiveStatuses resets any concern status that is in an active state
+// ResetActiveStatuses resets any station status that is in an active state
 // (change_detected, agent_running, committing) back to idle. This should be
 // called at the start of each processing cycle — any active status at that
 // point is stale from a previous run that was interrupted (e.g., daemon killed).
-func ResetActiveStatuses(repoDir string, concernNames []string) {
+func ResetActiveStatuses(repoDir string, stationNames []string) {
 	pid := os.Getpid()
-	for _, name := range concernNames {
+	for _, name := range stationNames {
 		status, err := ReadStatus(repoDir, name)
 		if err != nil || status == nil {
 			continue
@@ -147,19 +147,19 @@ func ResetActiveStatuses(repoDir string, concernNames []string) {
 	}
 }
 
-// SetLastSeen records the last-seen commit hash for a concern.
-func SetLastSeen(repoDir, concernName, hash string) error {
+// SetLastSeen records the last-seen commit hash for a station.
+func SetLastSeen(repoDir, stationName, hash string) error {
 	dir := stateDir(repoDir)
 	if err := fileutil.EnsureDir(dir); err != nil {
 		return err
 	}
-	return os.WriteFile(stateFilePath(repoDir, concernName), []byte(hash+"\n"), 0644)
+	return os.WriteFile(stateFilePath(repoDir, stationName), []byte(hash+"\n"), 0644)
 }
 
 // writeStaleFailedStatus writes a failed status for a stale active state that was interrupted.
-// This is called on startup when we find a concern stuck in an active state from a previous run.
-func writeStaleFailedStatus(repoDir, concernName, staleState, lastResult string, pid int) {
-	writeStatus(repoDir, concernName, statusUpdate{
+// This is called on startup when we find a station stuck in an active state from a previous run.
+func writeStaleFailedStatus(repoDir, stationName, staleState, lastResult string, pid int) {
+	writeStatus(repoDir, stationName, statusUpdate{
 		state:      StateFailed,
 		errorMsg:   fmt.Sprintf("stale %s state cleared on startup (previous process interrupted)", staleState),
 		lastResult: lastResult,

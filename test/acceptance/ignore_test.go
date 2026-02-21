@@ -23,7 +23,7 @@ agent:
 settings:
   branch_prefix: "line/"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"

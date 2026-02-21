@@ -23,7 +23,7 @@ var _ = Describe("no-change reviews", func() {
 agent:
   command: "true"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -66,7 +66,7 @@ agent:
   command: "sh"
   args: ["-c", "date +%s%N > agent-output.txt"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -75,7 +75,7 @@ concerns:
 		output, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "first run: %s", string(output))
 
-		// Output branch now has a concern commit on top of main
+		// Output branch now has a station commit on top of main
 		secHead1 := strings.TrimSpace(runGitOutput(repoDir, "rev-parse", "line/security"))
 		mainHead1 := strings.TrimSpace(runGitOutput(repoDir, "rev-parse", "main"))
 		Expect(secHead1).NotTo(Equal(mainHead1), "security branch should have its own commit")
@@ -90,7 +90,7 @@ concerns:
 agent:
   command: "true"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -105,13 +105,13 @@ concerns:
 		Expect(secLog).To(ContainSubstring(mainHead2), "output branch should contain latest main commit after rebase")
 	})
 
-	It("allows downstream concerns to see the branch advance", func() {
-		// Config with chain: security (no-change) -> docs
+	It("allows downstream stations to see the branch advance", func() {
+		// Config with line: security (no-change) -> docs
 		writeFile(configPath, `
 agent:
   command: "true"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"

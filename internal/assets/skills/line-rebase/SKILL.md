@@ -1,18 +1,18 @@
 ---
 name: line-rebase
-description: Pull agent changes back into your working branch. Rebases main onto the terminal concern branch, with backup, stash, conflict resolution, and recovery.
+description: Pull agent changes back into your working branch. Rebases main onto the terminal station branch, with backup, stash, conflict resolution, and recovery.
 metadata:
   author: line
   version: "2.0"
 ---
 
-Merge the results of a completed line concern chain back into the main branch.
+Merge the results of a completed station line back into the main branch.
 
-After line processes commits through a chain of concerns (e.g., security → style → docs), the terminal concern's branch holds the accumulated agent output. This skill rebases main onto that branch so the agent's work lands cleanly.
+After line processes commits through a line of stations (e.g., security → style → docs), the terminal station's branch holds the accumulated agent output. This skill rebases main onto that branch so the agent's work lands cleanly.
 
 ---
 
-## Phase 1: Discover the Concern Chain
+## Phase 1: Discover the Station Line
 
 1. **Find `line.yaml`**
    Look in the repo root, then walk up:
@@ -22,15 +22,15 @@ After line processes commits through a chain of concerns (e.g., security → sty
    Then check for `line.yaml` or `line.yml` in that directory.
    Read the file.
 
-2. **Parse the concern chain**
+2. **Parse the station line**
    From the YAML config, identify:
    - The **branch prefix** (from `settings.branch_prefix`, default: `line/`)
-   - All concerns and their `watches` fields
-   - The **terminal concern**: the concern whose name does not appear in any other concern's `watches` field
+   - All stations and their `watches` fields
+   - The **terminal station**: the station whose name does not appear in any other station's `watches` field
 
-   For a linear chain like:
+   For a linear line like:
    ```yaml
-   concerns:
+   stations:
      - name: security
        watches: main
      - name: style
@@ -38,21 +38,21 @@ After line processes commits through a chain of concerns (e.g., security → sty
      - name: docs
        watches: style
    ```
-   The terminal concern is `docs` (nothing watches it).
+   The terminal station is `docs` (nothing watches it).
 
-   If there are **multiple terminal concerns** (branching graph), STOP and tell the user:
-   "Multiple terminal concerns detected (<names>). This skill only supports linear chains. Please specify which branch to rebase onto."
+   If there are **multiple terminal stations** (branching graph), STOP and tell the user:
+   "Multiple terminal stations detected (<names>). This skill only supports linear lines. Please specify which branch to rebase onto."
 
 3. **Derive the terminal branch name**
    ```
-   <branch_prefix><terminal_concern_name>
+   <branch_prefix><terminal_station_name>
    ```
    e.g., `line/docs`
 
-4. **Verify the chain is complete**
-   Check `.line/status/<concern>.json` for each concern in the chain.
-   - If any concern has `"state": "running"`, STOP: "Concern chain is still running (<name> is active). Wait for it to finish."
-   - If any concern has `"state": "failed"`, STOP: "Concern <name> failed. Check logs before rebasing."
+4. **Verify the line is complete**
+   Check `.line/status/<station>.json` for each station in the line.
+   - If any station has `"state": "running"`, STOP: "Station line is still running (<name> is active). Wait for it to finish."
+   - If any station has `"state": "failed"`, STOP: "Station <name> failed. Check logs before rebasing."
    - Verify the terminal branch exists:
      ```bash
      git rev-parse --verify <terminal-branch> 2>/dev/null
@@ -67,7 +67,7 @@ After line processes commits through a chain of concerns (e.g., security → sty
    ```bash
    git branch --show-current
    ```
-   The current branch should be the branch that the first concern watches (typically `main` or `master`).
+   The current branch should be the branch that the first station watches (typically `main` or `master`).
    If not, ask the user: "You're on `<branch>`. Switch to `<main-branch>` first?"
 
 6. **Check for uncommitted changes**
@@ -81,8 +81,8 @@ After line processes commits through a chain of concerns (e.g., security → sty
    git log --oneline <terminal-branch>..HEAD
    git log --oneline HEAD..<terminal-branch>
    ```
-   - If the terminal branch is identical to HEAD: STOP: "Main is already up to date with the concern chain."
-   - If the terminal branch is behind HEAD (ancestor of HEAD): STOP: "The concern chain hasn't produced new changes since your last rebase."
+   - If the terminal branch is identical to HEAD: STOP: "Main is already up to date with the station line."
+   - If the terminal branch is behind HEAD (ancestor of HEAD): STOP: "The station line hasn't produced new changes since your last rebase."
 
 ---
 
@@ -129,9 +129,9 @@ Repeat until the rebase completes or is aborted. Track `CONFLICT_ROUND` starting
     a. **Read** the full file (it contains conflict markers)
     b. **Understand both sides:**
        - `<<<<<<<` to `=======` is your commit being replayed (the developer's changes)
-       - `=======` to `>>>>>>>` is the agent's accumulated output (from the concern chain)
+       - `=======` to `>>>>>>>` is the agent's accumulated output (from the station line)
     c. **Resolve intelligently:**
-       - For changes the agent made intentionally (matching concern scope — security fixes, style changes, etc.): **prefer the agent's version**
+       - For changes the agent made intentionally (matching station scope — security fixes, style changes, etc.): **prefer the agent's version**
        - For changes the developer made that don't conflict with the agent's intent: **preserve the developer's version**
        - When both sides modified the same lines for different reasons: **combine them**, keeping the agent's structural changes while preserving the developer's business logic
        - **Remove ALL conflict markers** — no `<<<<<<<`, `=======`, or `>>>>>>>` may remain
@@ -185,7 +185,7 @@ Tell the user: "Rebase aborted after too many conflict rounds. Your branch is re
     ```
     Rebase complete.
 
-    - Concern chain: <concern1> → <concern2> → ... → <terminal>
+    - Station line: <station1> → <station2> → ... → <terminal>
     - Terminal branch: <terminal-branch>
     - Commits replayed: <N> (or "fast-forward" if none)
     - Conflicts resolved: <count> (or "none")
@@ -199,21 +199,21 @@ Tell the user: "Rebase aborted after too many conflict rounds. Your branch is re
 ## Phase 8: Advance Daemon State (post-rebase)
 
 After a successful rebase (not aborted), update the daemon's last-seen marker for the
-**first concern** (the one that watches the main branch) so it doesn't re-process the
+**first station** (the one that watches the main branch) so it doesn't re-process the
 agent commits that just landed on main.
 
-16. **Write new HEAD to the first concern's state file**
+16. **Write new HEAD to the first station's state file**
     ```bash
     git rev-parse HEAD
     ```
-    Write this hash to `.line/state/<first-concern-name>`:
+    Write this hash to `.line/state/<first-station-name>`:
     ```bash
     mkdir -p .line/state
-    git rev-parse HEAD > .line/state/<first-concern-name>
+    git rev-parse HEAD > .line/state/<first-station-name>
     ```
 
-    The first concern is the one whose `watches` field matches the main branch (the branch
-    you're currently on). This is the same concern identified in Phase 1 as the root of the chain.
+    The first station is the one whose `watches` field matches the main branch (the branch
+    you're currently on). This is the same station identified in Phase 1 as the root of the line.
 
     This prevents the daemon from seeing the rebased agent commits as "new work" on the next
     poll cycle. The engine also detects agent commits independently, but advancing last-seen
@@ -230,7 +230,7 @@ agent commits that just landed on main.
 - **NEVER** delete the `pre-rebase-backup` branch.
 - **ALWAYS** create the backup before any destructive operation.
 - **ALWAYS** set `GIT_EDITOR=true` when running `git rebase --continue`.
-- **ALWAYS** verify the concern chain is complete before rebasing. Never rebase mid-chain.
+- **ALWAYS** verify the station line is complete before rebasing. Never rebase mid-line.
 - If the rebase is aborted, verify the branch is restored to its pre-rebase state.
 - If anything unexpected happens, prefer aborting over continuing blindly.
-- This skill only supports **linear chains** (single terminal concern). Branching graphs require manual intervention.
+- This skill only supports **linear lines** (single terminal station). Branching graphs require manual intervention.

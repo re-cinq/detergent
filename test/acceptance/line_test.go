@@ -9,22 +9,22 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("concern chaining", func() {
+var _ = Describe("station chaining", func() {
 	var tmpDir string
 	var repoDir string
 	var configPath string
 
 	BeforeEach(func() {
-		tmpDir, repoDir = setupTestRepo("line-chain-*")
+		tmpDir, repoDir = setupTestRepo("line-line-*")
 
-		// Config with A -> B chain: security watches main, docs watches security
+		// Config with A -> B line: security watches main, docs watches security
 		configPath = filepath.Join(repoDir, "line.yaml")
 		writeFile(configPath, `
 agent:
   command: "sh"
   args: ["-c", "date +%s%N > agent-output.txt"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -38,7 +38,7 @@ concerns:
 		cleanupTestRepo(repoDir, tmpDir)
 	})
 
-	It("processes both concerns in order after a single run --once", func() {
+	It("processes both stations in order after a single run --once", func() {
 		cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 		output, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
@@ -49,7 +49,7 @@ concerns:
 		Expect(branches).To(ContainSubstring("line/docs"))
 	})
 
-	It("creates commits on the downstream branch with concern tags", func() {
+	It("creates commits on the downstream branch with station tags", func() {
 		cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 		output, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
@@ -68,7 +68,7 @@ concerns:
 		output, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
-		// The docs concern's Triggered-By should reference the security branch commit
+		// The docs station's Triggered-By should reference the security branch commit
 		docsBody := runGitOutput(repoDir, "log", "-1", "--format=%B", "line/docs")
 		Expect(docsBody).To(ContainSubstring("Triggered-By:"))
 

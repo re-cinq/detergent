@@ -5,7 +5,7 @@
 ## What Changes
 
 - A post-commit hook automatically spawns a background runner when a commit lands
-- The runner processes the concern chain, then waits one grace period for more work before exiting
+- The runner processes the station line, then waits one grace period for more work before exiting
 - No explicit `line start` / `line stop` lifecycle — the runner is ephemeral and self-managing
 - A hidden `line trigger` subcommand handles the hook-to-runner handoff (write trigger file, check for existing runner, spawn if needed)
 - IPC via trigger file (`.line/trigger`) — hook writes commit hash, runner checks mod time after each grace period

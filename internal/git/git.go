@@ -135,9 +135,9 @@ func (r *Repo) EnsureIdentity() {
 	}
 }
 
-// WorktreePath returns the expected worktree path for a concern.
-func WorktreePath(repoDir, branchPrefix, concernName string) string {
-	return fileutil.LineSubdir(repoDir, filepath.Join("worktrees", branchPrefix+concernName))
+// WorktreePath returns the expected worktree path for a station.
+func WorktreePath(repoDir, branchPrefix, stationName string) string {
+	return fileutil.LineSubdir(repoDir, filepath.Join("worktrees", branchPrefix+stationName))
 }
 
 // FilesChangedInCommit returns the list of file paths changed in a single commit.
@@ -196,7 +196,7 @@ func (r *Repo) Rebase(targetBranch string) error {
 	_, err := r.run("rebase", targetBranch)
 	if err != nil {
 		// Rebase conflict — abort and reset to target branch.
-		// Concern branches are auto-generated; stale commits that
+		// Station branches are auto-generated; stale commits that
 		// conflict with upstream should be discarded so the agent
 		// can regenerate from a clean base.
 		r.abortRebase()

@@ -129,7 +129,7 @@ var _ = Describe("line gate", func() {
 			writeGateConfig(repoDir, `agent:
   command: "echo"
 
-concerns:
+stations:
   - name: security
     prompt: "check"
 `)
@@ -149,7 +149,7 @@ concerns:
 		})
 	})
 
-	Context("gates-only config (no agent/concerns)", func() {
+	Context("gates-only config (no agent/stations)", func() {
 		BeforeEach(func() {
 			writeGateConfig(repoDir, `gates:
   - name: lint
@@ -157,7 +157,7 @@ concerns:
 `)
 		})
 
-		It("works without agent or concerns", func() {
+		It("works without agent or stations", func() {
 			cmd := exec.Command(binaryPath, "gate", "--path", filepath.Join(repoDir, "line.yaml"))
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())

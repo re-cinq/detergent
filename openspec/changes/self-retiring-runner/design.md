@@ -7,7 +7,7 @@ The ideal model: commits automatically trigger processing. The runner does its j
 ## Goals / Non-Goals
 
 **Goals:**
-- Automatically process the concern chain when commits land, with no user intervention
+- Automatically process the station line when commits land, with no user intervention
 - Runner exits after a grace period with no new work (no zombie processes)
 - Single-instance guard prevents duplicate runners from stomping each other
 - Post-commit hook installed via `line init`, same patterns as existing pre-commit hook
@@ -56,7 +56,7 @@ The ideal model: commits automatically trigger processing. The runner does its j
 
 ### 3. Grace period: Reuse `poll_interval` config
 
-**Decision:** After processing the concern chain, the runner sleeps for `poll_interval` (from config), then checks the trigger file's mod time. If unchanged, it exits. If advanced, it loops.
+**Decision:** After processing the station line, the runner sleeps for `poll_interval` (from config), then checks the trigger file's mod time. If unchanged, it exits. If advanced, it loops.
 
 **Rationale:**
 - No new config field needed — `poll_interval` already represents "how long to wait between checks"

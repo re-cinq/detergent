@@ -22,14 +22,14 @@ var _ = Describe("line statusline", func() {
 		cleanupTestRepo(repoDir, tmpDir)
 	})
 
-	Context("with a chain config (no forks)", func() {
+	Context("with a line config (no forks)", func() {
 		BeforeEach(func() {
 			writeFile(filepath.Join(repoDir, "line.yaml"), `
 agent:
   command: "sh"
   args: ["-c", "echo noop"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Security review"
@@ -39,7 +39,7 @@ concerns:
 `)
 		})
 
-		It("renders a simple chain with cwd input", func() {
+		It("renders a simple line with cwd input", func() {
 			cmd := exec.Command(binaryPath, "statusline")
 			cmd.Stdin = strings.NewReader(`{"cwd":"` + repoDir + `"}`)
 			output, err := cmd.CombinedOutput()
@@ -49,9 +49,9 @@ concerns:
 			Expect(text).To(ContainSubstring("main"))
 			Expect(text).To(ContainSubstring("security"))
 			Expect(text).To(ContainSubstring("docs"))
-			// Simple chain uses ─── connector
+			// Simple line uses ─── connector
 			Expect(text).To(ContainSubstring("───"))
-			// Chain uses ── between concerns
+			// Line uses ── between stations
 			Expect(text).To(ContainSubstring("──"))
 		})
 
@@ -74,7 +74,7 @@ agent:
   command: "sh"
   args: ["-c", "echo noop"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Security review"
@@ -98,7 +98,7 @@ concerns:
 			Expect(text).To(ContainSubstring("└─"))
 		})
 
-		It("shows unknown state symbols for never-processed concerns", func() {
+		It("shows unknown state symbols for never-processed stations", func() {
 			cmd := exec.Command(binaryPath, "statusline")
 			cmd.Stdin = strings.NewReader(`{"cwd":"` + repoDir + `"}`)
 			output, err := cmd.CombinedOutput()
@@ -151,7 +151,7 @@ agent:
   command: "sh"
   args: ["-c", "echo 'reviewed' > agent-review.txt"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Security review"
@@ -179,7 +179,7 @@ concerns:
 agent:
   command: "true"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Security review"
@@ -189,7 +189,7 @@ concerns:
 			Expect(err).NotTo(HaveOccurred(), "run failed: %s", string(out))
 		})
 
-		It("shows checkmark for caught-up concern", func() {
+		It("shows checkmark for caught-up station", func() {
 			cmd := exec.Command(binaryPath, "statusline")
 			cmd.Stdin = strings.NewReader(`{"cwd":"` + repoDir + `"}`)
 			output, err := cmd.CombinedOutput()
@@ -200,13 +200,13 @@ concerns:
 		})
 	})
 
-	Context("when a concern is behind HEAD (pending)", func() {
+	Context("when a station is behind HEAD (pending)", func() {
 		BeforeEach(func() {
 			writeFile(filepath.Join(repoDir, "line.yaml"), `
 agent:
   command: "true"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Security review"
@@ -221,7 +221,7 @@ concerns:
 			runGit(repoDir, "commit", "-m", "new commit")
 		})
 
-		It("shows pending symbol for behind-HEAD concern", func() {
+		It("shows pending symbol for behind-HEAD station", func() {
 			cmd := exec.Command(binaryPath, "statusline")
 			cmd.Stdin = strings.NewReader(`{"cwd":"` + repoDir + `"}`)
 			output, err := cmd.CombinedOutput()
@@ -239,7 +239,7 @@ agent:
   command: "sh"
   args: ["-c", "echo noop"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Security review"

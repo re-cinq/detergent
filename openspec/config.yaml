@@ -4,7 +4,7 @@ schema: spec-driven
 # This is shown to AI when creating artifacts.
 context: |
   ## Purpose
-  Assembly Line is a daemon that orchestrates coding agents in a concern-based pipeline. Each agent focuses on a single quality concern (security, deduplication, style, etc.). Changes flow through a directed graph of concerns, with Git providing the audit trail and intent preservation.
+  Assembly Line is a daemon that orchestrates coding agents in a station-based pipeline. Each agent focuses on a single quality station (security, deduplication, style, etc.). Changes flow through a directed graph of stations, with Git providing the audit trail and intent preservation.
 
   ## Tech Stack
   - Go (daemon implementation)
@@ -21,9 +21,9 @@ context: |
   - Logging: structured logging with levels
 
   ### Architecture Patterns
-  - DAG for concern ordering
+  - DAG for station ordering
   - Polling model for branch watching
-  - Worktree isolation per concern
+  - Worktree isolation per station
   - Git notes for audit trail
 
   ### Testing Strategy
@@ -43,8 +43,8 @@ context: |
   - Commit messages: imperative mood, concise
 
   ## Domain Context
-  - **Concern**: A single-purpose agent focus (e.g., "fix security issues")
-  - **Concern Graph**: DAG of concerns, upstream to downstream
+  - **Station**: A single-purpose agent focus (e.g., "fix security issues")
+  - **Station Graph**: DAG of stations, upstream to downstream
   - **Intent Preservation**: Downstream agents respect upstream work via commit context
   - **Implicit Priority**: Position in graph implies precedence
 

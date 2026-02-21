@@ -13,7 +13,7 @@ func init() {
 
 var vizCmd = &cobra.Command{
 	Use:   "viz",
-	Short: "Visualize the concern chain",
+	Short: "Visualize the station line",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := loadAndValidateConfig(configPath)
@@ -35,7 +35,7 @@ func printGraph(cfg *config.Config) {
 	downstream := cfg.BuildDownstreamMap()
 
 	nodes := make(map[string]*vizNode)
-	for _, c := range cfg.Concerns {
+	for _, c := range cfg.Stations {
 		nodes[c.Name] = &vizNode{
 			watches:    c.Watches,
 			downstream: downstream[c.Name],

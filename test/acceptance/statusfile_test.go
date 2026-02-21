@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type concernStatus struct {
+type stationStatus struct {
 	State       string `json:"state"`
 	LastResult  string `json:"last_result,omitempty"`
 	StartedAt   string `json:"started_at,omitempty"`
@@ -33,11 +33,11 @@ var _ = Describe("status files", func() {
 		cleanupTestRepo(repoDir, tmpDir)
 	})
 
-	readStatus := func(concernName string) *concernStatus {
-		path := filepath.Join(repoDir, ".line", "status", concernName+".json")
+	readStatus := func(stationName string) *stationStatus {
+		path := filepath.Join(repoDir, ".line", "status", stationName+".json")
 		data, err := os.ReadFile(path)
 		ExpectWithOffset(1, err).NotTo(HaveOccurred(), "status file not found: %s", path)
-		var s concernStatus
+		var s stationStatus
 		ExpectWithOffset(1, json.Unmarshal(data, &s)).To(Succeed())
 		return &s
 	}
@@ -50,7 +50,7 @@ agent:
   command: "sh"
   args: ["-c", "echo 'reviewed' > agent-review.txt"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -60,7 +60,7 @@ concerns:
 			Expect(err).NotTo(HaveOccurred(), "run failed: %s", string(out))
 		})
 
-		It("writes a status file for the concern", func() {
+		It("writes a status file for the station", func() {
 			s := readStatus("security")
 			Expect(s.State).To(Equal("idle"))
 			Expect(s.LastResult).To(Equal("modified"))
@@ -78,7 +78,7 @@ agent:
   command: "sh"
   args: ["-c", "echo noop"]
 
-concerns:
+stations:
   - name: style
     watches: main
     prompt: "Check style"
@@ -95,7 +95,7 @@ concerns:
 		})
 	})
 
-	Context("when concern is already caught up", func() {
+	Context("when station is already caught up", func() {
 		BeforeEach(func() {
 			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
@@ -103,7 +103,7 @@ agent:
   command: "sh"
   args: ["-c", "echo noop"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review"
@@ -125,7 +125,7 @@ concerns:
 		})
 	})
 
-	Context("when a concern is skipped due to upstream failure", func() {
+	Context("when a station is skipped due to upstream failure", func() {
 		BeforeEach(func() {
 			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
@@ -133,7 +133,7 @@ agent:
   command: "sh"
   args: ["-c", "exit 1"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "This will fail"
@@ -142,16 +142,16 @@ concerns:
     prompt: "This should be skipped"
 `)
 			cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
-			cmd.CombinedOutput() // ignore exit code; concern failures are logged but don't stop the run
+			cmd.CombinedOutput() // ignore exit code; station failures are logged but don't stop the run
 		})
 
-		It("marks the failed concern as failed", func() {
+		It("marks the failed station as failed", func() {
 			s := readStatus("security")
 			Expect(s.State).To(Equal("failed"))
 			Expect(s.Error).NotTo(BeEmpty())
 		})
 
-		It("marks the downstream concern as skipped", func() {
+		It("marks the downstream station as skipped", func() {
 			s := readStatus("docs")
 			Expect(s.State).To(Equal("skipped"))
 		})

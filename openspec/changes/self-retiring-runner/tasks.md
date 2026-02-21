@@ -15,8 +15,8 @@
 ## 3. Post-Commit Hook
 
 - [ ] 3.1 Add post-commit hook constants and `initPostCommitHook(repoDir)` to `internal/cli/init.go` using same sentinel pattern as pre-commit: `# BEGIN line runner` / `# END line runner` markers, calls `line trigger >/dev/null 2>&1`
-- [ ] 3.2 Wire into `initCmd.RunE`: install post-commit hook when concerns are configured (`len(cfg.Concerns) > 0`)
-- [ ] 3.3 Acceptance tests in `test/acceptance/init_hook_test.go`: post-commit hook installed when concerns configured, idempotent re-installation, not installed when no concerns, injects into existing post-commit hook
+- [ ] 3.2 Wire into `initCmd.RunE`: install post-commit hook when stations are configured (`len(cfg.Stations) > 0`)
+- [ ] 3.3 Acceptance tests in `test/acceptance/init_hook_test.go`: post-commit hook installed when stations configured, idempotent re-installation, not installed when no stations, injects into existing post-commit hook
 
 ## 4. Self-Retiring Behavior
 

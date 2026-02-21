@@ -27,7 +27,7 @@ agent:
 settings:
   branch_prefix: "line/"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -54,7 +54,7 @@ concerns:
 		Expect(out).To(ContainSubstring("line/security"))
 	})
 
-	It("creates a commit on the output branch with the concern tag", func() {
+	It("creates a commit on the output branch with the station tag", func() {
 		cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 		output, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
@@ -84,7 +84,7 @@ agent:
 settings:
   branch_prefix: "line/"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -97,7 +97,7 @@ concerns:
 		wtPath := filepath.Join(repoDir, ".line", "worktrees", "line", "security")
 		stdinContent, err := os.ReadFile(filepath.Join(wtPath, "stdin-received.txt"))
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(stdinContent)).To(ContainSubstring("# Concern: security"))
+		Expect(string(stdinContent)).To(ContainSubstring("# Station: security"))
 		Expect(string(stdinContent)).To(ContainSubstring("Review for security issues"))
 	})
 
@@ -111,7 +111,7 @@ agent:
 settings:
   branch_prefix: "line/"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -138,7 +138,7 @@ settings:
 
 preamble: "You are a custom global agent. Proceed silently."
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -154,8 +154,8 @@ concerns:
 		Expect(string(content)).NotTo(ContainSubstring("non-interactively"))
 	})
 
-	It("uses per-concern preamble over global preamble", func() {
-		stdinConfigPath := filepath.Join(repoDir, "line-concern-preamble.yaml")
+	It("uses per-station preamble over global preamble", func() {
+		stdinConfigPath := filepath.Join(repoDir, "line-station-preamble.yaml")
 		writeFile(stdinConfigPath, `
 agent:
   command: "sh"
@@ -166,11 +166,11 @@ settings:
 
 preamble: "Global preamble that should be overridden."
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
-    preamble: "Per-concern preamble for security reviews."
+    preamble: "Per-station preamble for security reviews."
 `)
 		cmd := exec.Command(binaryPath, "run", "--once", "--path", stdinConfigPath)
 		output, err := cmd.CombinedOutput()
@@ -179,7 +179,7 @@ concerns:
 		wtPath := filepath.Join(repoDir, ".line", "worktrees", "line", "security")
 		content, err := os.ReadFile(filepath.Join(wtPath, "stdin-received.txt"))
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(content)).To(ContainSubstring("Per-concern preamble for security reviews"))
+		Expect(string(content)).To(ContainSubstring("Per-station preamble for security reviews"))
 		Expect(string(content)).NotTo(ContainSubstring("Global preamble that should be overridden"))
 	})
 
@@ -199,7 +199,7 @@ permissions:
     - Write
     - "Bash(*)"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -229,7 +229,7 @@ agent:
 settings:
   branch_prefix: "line/"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -254,7 +254,7 @@ agent:
 settings:
   branch_prefix: "line/"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Check env"

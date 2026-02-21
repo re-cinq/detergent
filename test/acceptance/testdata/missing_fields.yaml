@@ -1,7 +1,7 @@
 agent:
   command: ""
 
-concerns:
+stations:
   - name: ""
     prompt: "do something"
   - name: security

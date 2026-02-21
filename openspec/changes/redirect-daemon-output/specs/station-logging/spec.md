@@ -1,32 +1,32 @@
 ## ADDED Requirements
 
 ### Requirement: Agent output redirected to log files
-When running in daemon mode, the system SHALL redirect agent stdout and stderr to dedicated log files instead of the terminal. Each concern SHALL have its own log file.
+When running in daemon mode, the system SHALL redirect agent stdout and stderr to dedicated log files instead of the terminal. Each station SHALL have its own log file.
 
 #### Scenario: Agent output goes to log file
-- **WHEN** an agent runs for a concern
+- **WHEN** an agent runs for a station
 - **THEN** the agent's stdout and stderr are written to a log file, not the terminal
 
-#### Scenario: Separate log file per concern
-- **WHEN** agents run for concerns "security" and "style"
+#### Scenario: Separate log file per station
+- **WHEN** agents run for stations "security" and "style"
 - **THEN** output appears in separate files: one for security, one for style
 
 ### Requirement: Log files located in system temp directory
-The system SHALL create log files in the system temporary directory with the naming pattern `line-<concern>.log`.
+The system SHALL create log files in the system temporary directory with the naming pattern `line-<station>.log`.
 
 #### Scenario: Log file naming
-- **WHEN** an agent runs for concern "security"
+- **WHEN** an agent runs for station "security"
 - **THEN** output is written to `<temp-dir>/line-security.log`
 
 #### Scenario: Log file created on first agent run
-- **WHEN** an agent runs for a concern for the first time
+- **WHEN** an agent runs for a station for the first time
 - **THEN** the log file is created if it does not exist
 
 ### Requirement: Log files opened in append mode
 The system SHALL open log files in append mode, preserving output across daemon restarts and multiple agent invocations.
 
 #### Scenario: Output preserved across invocations
-- **WHEN** an agent runs, then another agent runs for the same concern
+- **WHEN** an agent runs, then another agent runs for the same station
 - **THEN** both outputs appear in the log file in sequence
 
 #### Scenario: Output preserved across daemon restarts
@@ -60,4 +60,4 @@ The system SHALL display the log file path pattern at daemon startup so users kn
 
 #### Scenario: Log path information at startup
 - **WHEN** the daemon starts
-- **THEN** the terminal shows the log file location pattern (e.g., "Agent logs: /tmp/line-<concern>.log")
+- **THEN** the terminal shows the log file location pattern (e.g., "Agent logs: /tmp/line-<station>.log")

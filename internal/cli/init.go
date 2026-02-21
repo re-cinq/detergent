@@ -64,7 +64,7 @@ This command:
 					return fmt.Errorf("installing pre-commit hook: %w", err)
 				}
 			}
-			if len(cfg.Concerns) > 0 {
+			if len(cfg.Stations) > 0 {
 				if err := initPostCommitHook(absDir); err != nil {
 					return fmt.Errorf("installing post-commit hook: %w", err)
 				}

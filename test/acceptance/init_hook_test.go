@@ -141,7 +141,7 @@ var _ = Describe("line init (pre-commit hook)", func() {
 			writeFile(filepath.Join(repoDir, "line.yaml"), `agent:
   command: "echo"
 
-concerns:
+stations:
   - name: security
     prompt: "check"
 `)
@@ -170,12 +170,12 @@ var _ = Describe("line init (post-commit hook)", func() {
 		cleanupTestRepo(repoDir, tmpDir)
 	})
 
-	Context("when concerns are configured", func() {
+	Context("when stations are configured", func() {
 		BeforeEach(func() {
 			writeFile(filepath.Join(repoDir, "line.yaml"), `agent:
   command: "echo"
 
-concerns:
+stations:
   - name: security
     prompt: "check"
 `)
@@ -203,7 +203,7 @@ concerns:
 			writeFile(filepath.Join(repoDir, "line.yaml"), `agent:
   command: "echo"
 
-concerns:
+stations:
   - name: security
     prompt: "check"
 `)
@@ -231,7 +231,7 @@ concerns:
 			writeFile(filepath.Join(repoDir, "line.yaml"), `agent:
   command: "echo"
 
-concerns:
+stations:
   - name: security
     prompt: "check"
 `)
@@ -254,7 +254,7 @@ concerns:
 		})
 	})
 
-	Context("when no concerns are configured", func() {
+	Context("when no stations are configured", func() {
 		BeforeEach(func() {
 			writeFile(filepath.Join(repoDir, "line.yaml"), `gates:
   - name: lint
@@ -269,7 +269,7 @@ concerns:
 
 			hookPath := filepath.Join(repoDir, ".git", "hooks", "post-commit")
 			_, err = os.Stat(hookPath)
-			Expect(os.IsNotExist(err)).To(BeTrue(), "hook should not exist when no concerns")
+			Expect(os.IsNotExist(err)).To(BeTrue(), "hook should not exist when no stations")
 		})
 	})
 })

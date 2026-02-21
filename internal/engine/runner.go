@@ -108,7 +108,7 @@ func reloadRunnerConfig(configPath string, prev *config.Config) *config.Config {
 	return newCfg
 }
 
-// RunnerLoop is the self-retiring runner loop. It processes concerns, then waits
+// RunnerLoop is the self-retiring runner loop. It processes stations, then waits
 // one grace period for new trigger activity. If no new trigger arrives, it exits.
 func RunnerLoop(ctx context.Context, configPath string, cfg *config.Config, repoDir string) error {
 	// Duplicate guard: if another runner is already alive, exit immediately

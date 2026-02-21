@@ -10,7 +10,7 @@ import (
 type Config struct {
 	Agent       AgentConfig  `yaml:"agent"`
 	Settings    Settings     `yaml:"settings"`
-	Concerns    []Concern    `yaml:"concerns"`
+	Stations    []Station    `yaml:"stations"`
 	Gates       []Gate       `yaml:"gates,omitempty"`
 	Permissions *Permissions `yaml:"permissions,omitempty"`
 	Preamble    string       `yaml:"preamble,omitempty"`
@@ -39,7 +39,7 @@ type Settings struct {
 	Watches      string `yaml:"watches"`
 }
 
-type Concern struct {
+type Station struct {
 	Name     string   `yaml:"name"`
 	Watches  string   `yaml:"watches"`
 	Prompt   string   `yaml:"prompt"`
@@ -48,13 +48,13 @@ type Concern struct {
 	Preamble string   `yaml:"preamble,omitempty"`
 }
 
-// DefaultPreamble is the preamble prepended to every concern prompt when no
+// DefaultPreamble is the preamble prepended to every station prompt when no
 // custom preamble is configured.
 const DefaultPreamble = "You are running non-interactively. Do not ask questions or wait for confirmation.\nIf something is unclear, make your best judgement and proceed.\nDo not run git commit — your changes will be committed automatically."
 
-// ResolvePreamble returns the effective preamble for a concern.
-// Per-concern preamble takes priority, then global config preamble, then DefaultPreamble.
-func (cfg *Config) ResolvePreamble(c Concern) string {
+// ResolvePreamble returns the effective preamble for a station.
+// Per-station preamble takes priority, then global config preamble, then DefaultPreamble.
+func (cfg *Config) ResolvePreamble(c Station) string {
 	if c.Preamble != "" {
 		return c.Preamble
 	}
@@ -86,15 +86,15 @@ func parse(data []byte) (*Config, error) {
 		cfg.Settings.Watches = "main"
 	}
 
-	// Auto-populate Watches for concerns defined as an ordered list.
-	// First concern watches settings.watches; each subsequent concern
+	// Auto-populate Watches for stations defined as an ordered list.
+	// First station watches settings.watches; each subsequent station
 	// watches the previous one. Explicit watches values take precedence.
-	for i := range cfg.Concerns {
-		if cfg.Concerns[i].Watches == "" {
+	for i := range cfg.Stations {
+		if cfg.Stations[i].Watches == "" {
 			if i == 0 {
-				cfg.Concerns[i].Watches = cfg.Settings.Watches
+				cfg.Stations[i].Watches = cfg.Settings.Watches
 			} else {
-				cfg.Concerns[i].Watches = cfg.Concerns[i-1].Name
+				cfg.Stations[i].Watches = cfg.Stations[i-1].Name
 			}
 		}
 	}
@@ -109,26 +109,26 @@ func Validate(cfg *Config) []error {
 		errs = append(errs, fmt.Errorf("agent.command is required"))
 	}
 
-	if len(cfg.Concerns) == 0 {
-		errs = append(errs, fmt.Errorf("at least one concern is required"))
+	if len(cfg.Stations) == 0 {
+		errs = append(errs, fmt.Errorf("at least one station is required"))
 	}
 
 	names := make(map[string]bool)
-	for i, c := range cfg.Concerns {
+	for i, c := range cfg.Stations {
 		if c.Name == "" {
-			errs = append(errs, fmt.Errorf("concerns[%d]: name is required", i))
+			errs = append(errs, fmt.Errorf("stations[%d]: name is required", i))
 		} else if names[c.Name] {
-			errs = append(errs, fmt.Errorf("concerns[%d]: duplicate name %q", i, c.Name))
+			errs = append(errs, fmt.Errorf("stations[%d]: duplicate name %q", i, c.Name))
 		} else {
 			names[c.Name] = true
 		}
 
 		if c.Prompt == "" {
-			errs = append(errs, fmt.Errorf("concerns[%d] (%s): prompt is required", i, c.Name))
+			errs = append(errs, fmt.Errorf("stations[%d] (%s): prompt is required", i, c.Name))
 		}
 	}
 
-	if cycleErr := detectCycles(cfg.Concerns); cycleErr != nil {
+	if cycleErr := detectCycles(cfg.Stations); cycleErr != nil {
 		errs = append(errs, cycleErr)
 	}
 
@@ -157,18 +157,18 @@ func ValidateGates(gates []Gate) []error {
 	return errs
 }
 
-func detectCycles(concerns []Concern) error {
-	// Build adjacency: concern name -> what it watches (if that's also a concern)
+func detectCycles(stations []Station) error {
+	// Build adjacency: station name -> what it watches (if that's also a station)
 	nameSet := make(map[string]bool)
-	for _, c := range concerns {
+	for _, c := range stations {
 		nameSet[c.Name] = true
 	}
 
-	// Graph edges: watches -> name (concern depends on what it watches)
+	// Graph edges: watches -> name (station depends on what it watches)
 	// For cycle detection we need: name -> []downstream
 	// Actually: if A watches B, then A depends on B. Edge: A -> B.
 	adj := make(map[string][]string)
-	for _, c := range concerns {
+	for _, c := range stations {
 		if nameSet[c.Watches] {
 			adj[c.Name] = append(adj[c.Name], c.Watches)
 		}
@@ -199,7 +199,7 @@ func detectCycles(concerns []Concern) error {
 		return nil
 	}
 
-	for _, c := range concerns {
+	for _, c := range stations {
 		if color[c.Name] == white {
 			if err := visit(c.Name); err != nil {
 				return err
@@ -210,9 +210,9 @@ func detectCycles(concerns []Concern) error {
 	return nil
 }
 
-// HasConcern returns true if a concern with the given name exists in the config.
-func (cfg *Config) HasConcern(name string) bool {
-	for _, c := range cfg.Concerns {
+// HasStation returns true if a station with the given name exists in the config.
+func (cfg *Config) HasStation(name string) bool {
+	for _, c := range cfg.Stations {
 		if c.Name == name {
 			return true
 		}
@@ -220,30 +220,30 @@ func (cfg *Config) HasConcern(name string) bool {
 	return false
 }
 
-// ValidateConcernName returns an error if the concern name does not exist in the config.
-func (cfg *Config) ValidateConcernName(name string) error {
-	if !cfg.HasConcern(name) {
-		return fmt.Errorf("unknown concern %q", name)
+// ValidateStationName returns an error if the station name does not exist in the config.
+func (cfg *Config) ValidateStationName(name string) error {
+	if !cfg.HasStation(name) {
+		return fmt.Errorf("unknown station %q", name)
 	}
 	return nil
 }
 
-// BuildNameSet returns a set of all concern names in the config.
+// BuildNameSet returns a set of all station names in the config.
 func (cfg *Config) BuildNameSet() map[string]bool {
-	nameSet := make(map[string]bool, len(cfg.Concerns))
-	for _, c := range cfg.Concerns {
+	nameSet := make(map[string]bool, len(cfg.Stations))
+	for _, c := range cfg.Stations {
 		nameSet[c.Name] = true
 	}
 	return nameSet
 }
 
 // BuildDownstreamMap builds an adjacency map: watched -> []watchers.
-// For each concern, if it watches another concern in the chain, that creates
+// For each station, if it watches another station in the line, that creates
 // an edge: watched -> watcher.
 func (cfg *Config) BuildDownstreamMap() map[string][]string {
 	nameSet := cfg.BuildNameSet()
 	downstream := make(map[string][]string)
-	for _, c := range cfg.Concerns {
+	for _, c := range cfg.Stations {
 		if nameSet[c.Watches] {
 			downstream[c.Watches] = append(downstream[c.Watches], c.Name)
 		}
@@ -251,12 +251,12 @@ func (cfg *Config) BuildDownstreamMap() map[string][]string {
 	return downstream
 }
 
-// FindRoots returns the names of concerns that watch external branches
-// (not other concerns in the chain).
+// FindRoots returns the names of stations that watch external branches
+// (not other stations in the line).
 func (cfg *Config) FindRoots() []string {
 	nameSet := cfg.BuildNameSet()
 	var roots []string
-	for _, c := range cfg.Concerns {
+	for _, c := range cfg.Stations {
 		if !nameSet[c.Watches] {
 			roots = append(roots, c.Name)
 		}

@@ -1,10 +1,10 @@
 ## ADDED Requirements
 
 ### Requirement: Post-commit hook triggers runner
-The system SHALL provide a post-commit hook that triggers concern-chain processing after each commit. The hook MUST be installed by `line init` when concerns are configured.
+The system SHALL provide a post-commit hook that triggers station-line processing after each commit. The hook MUST be installed by `line init` when stations are configured.
 
 #### Scenario: Hook installed by line init
-- **WHEN** `line init` runs and the config has concerns defined
+- **WHEN** `line init` runs and the config has stations defined
 - **THEN** a post-commit hook is installed in `.git/hooks/post-commit`
 - **AND** the hook contains sentinel markers (`# BEGIN line runner` / `# END line runner`)
 - **AND** the hook calls `line trigger` with output suppressed
@@ -19,8 +19,8 @@ The system SHALL provide a post-commit hook that triggers concern-chain processi
 - **THEN** the runner block is injected into the existing hook
 - **AND** the original hook content is preserved
 
-#### Scenario: No hook when no concerns configured
-- **WHEN** `line init` runs and no concerns are defined in config
+#### Scenario: No hook when no stations configured
+- **WHEN** `line init` runs and no stations are defined in config
 - **THEN** no post-commit hook is installed for the runner
 
 ---
@@ -46,7 +46,7 @@ The system SHALL provide a hidden `line trigger` subcommand that writes a trigge
 ---
 
 ### Requirement: Runner self-retires after idle grace period
-The system SHALL run the concern chain and then wait one grace period (equal to `poll_interval`) for new work. If no new trigger arrives during the grace period, the runner exits.
+The system SHALL run the station line and then wait one grace period (equal to `poll_interval`) for new work. If no new trigger arrives during the grace period, the runner exits.
 
 #### Scenario: Runner exits when no new work
 - **WHEN** the runner finishes processing and sleeps for the grace period
@@ -62,7 +62,7 @@ The system SHALL run the concern chain and then wait one grace period (equal to 
 #### Scenario: Multiple rapid commits
 - **WHEN** several commits land in quick succession
 - **THEN** each commit overwrites the trigger file
-- **AND** the runner processes the concern chain (which handles all new commits via last-seen tracking)
+- **AND** the runner processes the station line (which handles all new commits via last-seen tracking)
 - **AND** exits after a grace period with no further commits
 
 ---

@@ -61,7 +61,7 @@ var _ = Describe("line validate", func() {
 		})
 	})
 
-	Context("with a cycle in the concern graph", func() {
+	Context("with a cycle in the station graph", func() {
 		It("exits with a non-zero code", func() {
 			cmd := exec.Command(binaryPath, "validate", "--path", testdataPath("cycle.yaml"))
 			err := cmd.Run()

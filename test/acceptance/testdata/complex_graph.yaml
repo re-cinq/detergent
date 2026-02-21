@@ -4,7 +4,7 @@ agent:
 settings:
   watches: main
 
-concerns:
+stations:
   - name: security
     prompt: "Security review"
   - name: style

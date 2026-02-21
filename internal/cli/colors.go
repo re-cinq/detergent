@@ -43,7 +43,7 @@ func stateDisplay(state, lastResult string) (symbol, color string) {
 	}
 }
 
-// formatStatus formats a concern status line with symbol, color, and message.
+// formatStatus formats a station status line with symbol, color, and message.
 // Returns the complete formatted string including ANSI codes and trailing reset.
 func formatStatus(state, lastResult, name, message string) string {
 	sym, clr := stateDisplay(state, lastResult)

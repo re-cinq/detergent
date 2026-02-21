@@ -5,7 +5,7 @@ agent:
 settings:
   watches: main
 
-concerns:
+stations:
   - name: security
     prompt: "Review for security vulnerabilities"
 

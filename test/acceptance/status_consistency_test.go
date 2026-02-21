@@ -17,7 +17,7 @@ import (
 // statusSnapshot captures all four status sources at a point in time.
 type statusSnapshot struct {
 	timestamp      time.Time
-	statusFile     *concernStatus
+	statusFile     *stationStatus
 	statuslineData *statuslineOutput
 	statusText     string
 	statuslineText string
@@ -63,7 +63,7 @@ agent:
 
 settings:
 
-concerns:
+stations:
   - name: readme
     watches: main
     prompt: "Add a line to the README"
@@ -81,7 +81,7 @@ concerns:
 		// 1. Read raw status JSON file
 		statusPath := filepath.Join(repoDir, ".line", "status", "readme.json")
 		if data, err := os.ReadFile(statusPath); err == nil {
-			var s concernStatus
+			var s stationStatus
 			if json.Unmarshal(data, &s) == nil {
 				snap.statusFile = &s
 			}
@@ -112,12 +112,12 @@ concerns:
 		return snap
 	}
 
-	// getState returns the canonical state from statusline-data for the "readme" concern.
+	// getState returns the canonical state from statusline-data for the "readme" station.
 	getState := func(snap statusSnapshot) string {
 		if snap.statuslineData == nil {
 			return ""
 		}
-		for _, c := range snap.statuslineData.Concerns {
+		for _, c := range snap.statuslineData.Stations {
 			if c.Name == "readme" {
 				return c.State
 			}
@@ -440,7 +440,7 @@ concerns:
 		// Verify final state: idle with last_result=modified
 		finalSnap := snapshots[len(snapshots)-1]
 		Expect(checkConsistency(finalSnap)).To(Succeed(), "first cycle final snapshot")
-		for _, c := range finalSnap.statuslineData.Concerns {
+		for _, c := range finalSnap.statuslineData.Stations {
 			if c.Name == "readme" {
 				Expect(c.LastResult).To(Equal("modified"),
 					"agent appended to README, expected last_result=modified")

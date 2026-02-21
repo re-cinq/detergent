@@ -17,7 +17,7 @@ func init() {
 
 var statuslineDataCmd = &cobra.Command{
 	Use:    "statusline-data",
-	Short:  "Output JSON status data for all concerns (for statusline rendering)",
+	Short:  "Output JSON status data for all stations (for statusline rendering)",
 	Hidden: true,
 	Args:   cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -38,14 +38,14 @@ type StatuslineOutput struct {
 	RunnerAlive        bool          `json:"runner_alive"`
 	RunnerPID          int           `json:"runner_pid,omitempty"`
 	RunnerSince        string        `json:"runner_since,omitempty"`
-	Concerns           []ConcernData `json:"concerns"`
+	Stations           []StationData `json:"stations"`
 	Roots              []string      `json:"roots"`
 	Graph              []GraphEdge   `json:"graph"`
 	HasUnpickedCommits bool          `json:"has_unpicked_commits"`
 }
 
-// ConcernData represents one concern's status for statusline rendering.
-type ConcernData struct {
+// StationData represents one station's status for statusline rendering.
+type StationData struct {
 	Name       string `json:"name"`
 	Watches    string `json:"watches"`
 	State      string `json:"state"`
@@ -61,25 +61,25 @@ type GraphEdge struct {
 	To   string `json:"to"`
 }
 
-// gatherStatuslineData collects status data for all concerns without serializing.
+// gatherStatuslineData collects status data for all stations without serializing.
 
 func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 	repo := gitops.NewRepo(repoDir)
 
-	concerns := make([]ConcernData, 0)
+	stations := make([]StationData, 0)
 	roots := cfg.FindRoots()
 	graph := make([]GraphEdge, 0)
 
-	for _, c := range cfg.Concerns {
+	for _, c := range cfg.Stations {
 		// Build graph edges
-		if cfg.HasConcern(c.Watches) {
+		if cfg.HasStation(c.Watches) {
 			graph = append(graph, GraphEdge{From: c.Watches, To: c.Name})
 		}
 
 		// Read status file
 		status, _ := engine.ReadStatus(repoDir, c.Name)
 
-		cd := ConcernData{
+		cd := StationData{
 			Name:    c.Name,
 			Watches: c.Watches,
 		}
@@ -120,17 +120,17 @@ func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 			cd.State = "pending"
 		}
 
-		concerns = append(concerns, cd)
+		stations = append(stations, cd)
 	}
 
-	// Determine if the terminal concern branch has commits ahead of the root watched branch.
+	// Determine if the terminal station branch has commits ahead of the root watched branch.
 	hasUnpicked := false
 	downstream := make(map[string]bool)
 	for _, e := range graph {
 		downstream[e.From] = true
 	}
 	var terminals []string
-	for _, c := range concerns {
+	for _, c := range stations {
 		if !downstream[c.Name] {
 			terminals = append(terminals, c.Name)
 		}
@@ -174,7 +174,7 @@ func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 		RunnerAlive:        runnerAlive,
 		RunnerPID:          runnerPID,
 		RunnerSince:        runnerSince,
-		Concerns:           concerns,
+		Stations:           stations,
 		Roots:              roots,
 		Graph:              graph,
 		HasUnpickedCommits: hasUnpicked,

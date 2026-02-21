@@ -27,7 +27,7 @@ agent:
 
 settings:
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"

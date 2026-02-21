@@ -21,8 +21,8 @@ func init() {
 }
 
 var logsCmd = &cobra.Command{
-	Use:   "logs <concern>",
-	Short: "Show agent logs for a concern",
+	Use:   "logs <station>",
+	Short: "Show agent logs for a station",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := loadAndValidateConfig(configPath)
@@ -30,16 +30,16 @@ var logsCmd = &cobra.Command{
 			return err
 		}
 
-		concernName := args[0]
+		stationName := args[0]
 
-		// Validate concern name exists in config
-		if err := cfg.ValidateConcernName(concernName); err != nil {
+		// Validate station name exists in config
+		if err := cfg.ValidateStationName(stationName); err != nil {
 			return err
 		}
 
-		logPath := engine.LogPathFor(concernName)
+		logPath := engine.LogPathFor(stationName)
 		if _, err := os.Stat(logPath); os.IsNotExist(err) {
-			return fmt.Errorf("no log file found for %q (expected at %s)", concernName, logPath)
+			return fmt.Errorf("no log file found for %q (expected at %s)", stationName, logPath)
 		}
 
 		// Use tail to display the log

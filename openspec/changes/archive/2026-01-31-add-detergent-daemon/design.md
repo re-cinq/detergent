@@ -2,7 +2,7 @@
 
 ## Context
 
-We need to orchestrate multiple coding agents, each focused on a single quality concern, in a way that:
+We need to orchestrate multiple coding agents, each focused on a single quality station, in a way that:
 - Preserves the intent of upstream changes
 - Provides a clear audit trail
 - Allows parallel execution where possible
@@ -38,12 +38,12 @@ We need to orchestrate multiple coding agents, each focused on a single quality 
 ---
 
 ### Decision: Worktrees for Isolation
-**Choice:** One git worktree per concern
+**Choice:** One git worktree per station
 
 **Rationale:**
 - Git-native isolation (no container overhead)
 - Allows parallel execution without locks
-- Clean separation of concern state
+- Clean separation of station state
 
 **Alternatives considered:**
 - Stash/restore: Race conditions, complex state management
@@ -69,25 +69,25 @@ We need to orchestrate multiple coding agents, each focused on a single quality 
 **Choice:** Fast-forward output branch when no changes needed
 
 **Rationale:**
-- Downstream concerns see commits arrive (triggers their processing)
+- Downstream stations see commits arrive (triggers their processing)
 - Original commits pass through with hashes intact
 - Combined with git notes, provides complete audit trail
 
 ---
 
 ### Decision: Commit Message Format
-**Choice:** `[{CONCERN_NAME}] {summary}` with `Triggered-By:` trailer
+**Choice:** `[{STATION_NAME}] {summary}` with `Triggered-By:` trailer
 
 **Rationale:**
 - Tag at start is easy to grep/filter
 - Trailer is Git convention (like `Signed-off-by`)
-- Enables downstream agents to see concern chain
+- Enables downstream agents to see station line
 
 ## Risks / Trade-offs
 
 | Risk | Mitigation |
 |------|------------|
-| Agent makes breaking changes | Implicit priority (upstream wins), human review at chain end |
+| Agent makes breaking changes | Implicit priority (upstream wins), human review at line end |
 | Polling misses rapid commits | Batch processing handles multiple commits per poll |
 | Worktree disk usage | Cleanup command, shallow worktrees option |
 | Agent timeout/hang | Configurable timeout, kill after threshold |
@@ -98,6 +98,6 @@ N/A - new capability, no migration needed.
 
 ## Open Questions
 
-1. Should there be a "human checkpoint" concern type that pauses for review?
+1. Should there be a "human checkpoint" station type that pauses for review?
 2. Should the final output branch be auto-merged to a target branch?
 3. How to handle merge conflicts if someone pushes to an output branch manually?

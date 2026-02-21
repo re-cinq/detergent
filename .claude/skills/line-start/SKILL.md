@@ -1,6 +1,6 @@
 ---
 name: line-start
-description: Start the line runner to process commits through the concern chain. Normally auto-triggered by post-commit hooks.
+description: Start the line runner to process commits through the station line. Normally auto-triggered by post-commit hooks.
 metadata:
   author: line
   version: "2.0"
@@ -16,7 +16,7 @@ After `line init`, a post-commit hook calls `line trigger` on every commit. This
 1. Writes a trigger file (`.line/trigger`) with the current HEAD
 2. Spawns `line run` if no runner is already active
 
-The runner processes all pending commits through the concern chain, then waits a grace period for more work. If no new commits arrive, it exits on its own. No manual start/stop needed.
+The runner processes all pending commits through the station line, then waits a grace period for more work. If no new commits arrive, it exits on its own. No manual start/stop needed.
 
 ## Manual start
 

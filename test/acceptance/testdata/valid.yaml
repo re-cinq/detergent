@@ -6,7 +6,7 @@ settings:
   branch_prefix: "line/"
   watches: main
 
-concerns:
+stations:
   - name: security
     prompt: "Review for security vulnerabilities"
   - name: docs

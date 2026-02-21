@@ -29,7 +29,7 @@ func init() {
 
 var statusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Show the status of each concern",
+	Short: "Show the status of each station",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, repoDir, err := loadConfigAndRepo(configPath)
@@ -96,7 +96,7 @@ func showStatus(cfg *config.Config, repoDir string) error {
 func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool) error {
 	repo := gitops.NewRepo(repoDir)
 
-	fmt.Fprintln(w, "Concern Status")
+	fmt.Fprintln(w, "Station Status")
 	fmt.Fprintln(w, "──────────────────────────────────────")
 
 	// Show the source branch as the first entry
@@ -109,9 +109,9 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool
 		fmt.Fprintln(w, formatStatus(engine.StateIdle, "result", sourceBranch, msg))
 	}
 
-	var activeConcerns []string
+	var activeStations []string
 
-	for _, c := range cfg.Concerns {
+	for _, c := range cfg.Stations {
 		watchedBranch := engine.ResolveWatchedBranch(cfg, c)
 
 		status, _ := engine.ReadStatus(repoDir, c.Name)
@@ -129,16 +129,16 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool
 			case engine.StateChangeDetected:
 				msg := fmt.Sprintf("change detected at %s", short(status.HeadAtStart))
 				fmt.Fprintln(w, formatStatus(status.State, "", c.Name, msg))
-				activeConcerns = append(activeConcerns, c.Name)
+				activeStations = append(activeStations, c.Name)
 				continue
 			case engine.StateAgentRunning:
 				msg := fmt.Sprintf("agent running (since %s)", status.StartedAt)
 				fmt.Fprintln(w, formatStatus(status.State, "", c.Name, msg))
-				activeConcerns = append(activeConcerns, c.Name)
+				activeStations = append(activeStations, c.Name)
 				continue
 			case engine.StateCommitting:
 				fmt.Fprintln(w, formatStatus(status.State, "", c.Name, "committing changes"))
-				activeConcerns = append(activeConcerns, c.Name)
+				activeStations = append(activeStations, c.Name)
 				continue
 			case engine.StateFailed:
 				msg := fmt.Sprintf("failed: %s", status.Error)
@@ -175,13 +175,13 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool
 		}
 	}
 
-	// Show runner status after concerns
+	// Show runner status after stations
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, formatRunner(repoDir))
 
-	// In follow mode, show last few log lines for active concerns
-	if showLogs && len(activeConcerns) > 0 {
-		for _, name := range activeConcerns {
+	// In follow mode, show last few log lines for active stations
+	if showLogs && len(activeStations) > 0 {
+		for _, name := range activeStations {
 			logPath := engine.LogPathFor(name)
 			tail := readLastLines(logPath, 5)
 			if tail != "" {

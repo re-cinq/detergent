@@ -20,7 +20,7 @@ import (
 	gitops "github.com/re-cinq/assembly-line/internal/git"
 )
 
-// LogManager manages per-concern log files for agent output.
+// LogManager manages per-station log files for agent output.
 type LogManager struct {
 	mu    sync.Mutex
 	files map[string]*os.File
@@ -33,55 +33,55 @@ func NewLogManager() *LogManager {
 	}
 }
 
-// getLogFile returns the log file for a concern, creating it if necessary.
-// Log files are stored in the system temp directory with the pattern line-<concern>.log.
-func (lm *LogManager) getLogFile(concernName string) (*os.File, error) {
+// getLogFile returns the log file for a station, creating it if necessary.
+// Log files are stored in the system temp directory with the pattern line-<station>.log.
+func (lm *LogManager) getLogFile(stationName string) (*os.File, error) {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()
 
-	if f, ok := lm.files[concernName]; ok {
+	if f, ok := lm.files[stationName]; ok {
 		return f, nil
 	}
 
-	logPath := LogPathFor(concernName)
+	logPath := LogPathFor(stationName)
 	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {
 		return nil, fmt.Errorf("opening log file %s: %w", logPath, err)
 	}
 
-	lm.files[concernName] = f
+	lm.files[stationName] = f
 	return f, nil
 }
 
-// truncateLogFile truncates the log file for a concern to clear old logs from previous runs.
-func (lm *LogManager) truncateLogFile(concernName string) error {
+// truncateLogFile truncates the log file for a station to clear old logs from previous runs.
+func (lm *LogManager) truncateLogFile(stationName string) error {
 	lm.mu.Lock()
 	defer lm.mu.Unlock()
 
 	// Close and remove the cached file handle if it exists
-	if f, ok := lm.files[concernName]; ok {
+	if f, ok := lm.files[stationName]; ok {
 		f.Close()
-		delete(lm.files, concernName)
+		delete(lm.files, stationName)
 	}
 
-	logPath := LogPathFor(concernName)
+	logPath := LogPathFor(stationName)
 	f, err := os.OpenFile(logPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	if err != nil {
 		return fmt.Errorf("truncating log file %s: %w", logPath, err)
 	}
 
-	lm.files[concernName] = f
+	lm.files[stationName] = f
 	return nil
 }
 
 // LogPath returns the log file path pattern for display purposes.
 func LogPath() string {
-	return filepath.Join(os.TempDir(), "line-<concern>.log")
+	return filepath.Join(os.TempDir(), "line-<station>.log")
 }
 
-// LogPathFor returns the log file path for a specific concern.
-func LogPathFor(concernName string) string {
-	return filepath.Join(os.TempDir(), fmt.Sprintf("line-%s.log", concernName))
+// LogPathFor returns the log file path for a specific station.
+func LogPathFor(stationName string) string {
+	return filepath.Join(os.TempDir(), fmt.Sprintf("line-%s.log", stationName))
 }
 
 // Close closes all open log files.
@@ -99,9 +99,9 @@ func (lm *LogManager) Close() error {
 	return firstErr
 }
 
-// RunOnce processes each concern once and returns.
-// Independent concerns at the same level run in parallel.
-// Individual concern failures are logged but don't stop other concerns.
+// RunOnce processes each station once and returns.
+// Independent stations at the same level run in parallel.
+// Individual station failures are logged but don't stop other stations.
 // Creates a temporary LogManager that is closed after processing.
 func RunOnce(cfg *config.Config, repoDir string) error {
 	logMgr := NewLogManager()
@@ -109,9 +109,9 @@ func RunOnce(cfg *config.Config, repoDir string) error {
 	return RunOnceWithLogs(cfg, repoDir, logMgr)
 }
 
-// shouldSkipConcern checks if a concern should be skipped due to upstream failures.
+// shouldSkipStation checks if a station should be skipped due to upstream failures.
 // If upstream failed, it writes a skip status and returns true.
-func shouldSkipConcern(repoDir string, c config.Concern, failed *failedSet) bool {
+func shouldSkipStation(repoDir string, c config.Station, failed *failedSet) bool {
 	if failed.has(c.Watches) {
 		skipUpstreamFailed(repoDir, c.Name, os.Getpid())
 		return true
@@ -119,23 +119,23 @@ func shouldSkipConcern(repoDir string, c config.Concern, failed *failedSet) bool
 	return false
 }
 
-// processConcernAndTrackFailure processes a concern and tracks failures in the failedSet.
-func processConcernAndTrackFailure(cfg *config.Config, repo *gitops.Repo, repoDir string, c config.Concern, logMgr *LogManager, failed *failedSet) {
-	if err := processConcern(cfg, repo, repoDir, c, logMgr); err != nil {
-		fileutil.LogError("concern %s failed: %s", c.Name, err)
+// processStationAndTrackFailure processes a station and tracks failures in the failedSet.
+func processStationAndTrackFailure(cfg *config.Config, repo *gitops.Repo, repoDir string, c config.Station, logMgr *LogManager, failed *failedSet) {
+	if err := processStation(cfg, repo, repoDir, c, logMgr); err != nil {
+		fileutil.LogError("station %s failed: %s", c.Name, err)
 		failed.set(c.Name)
 	}
 }
 
-// RunOnceWithLogs processes each concern once using the provided LogManager.
+// RunOnceWithLogs processes each station once using the provided LogManager.
 // The LogManager is not closed; the caller is responsible for closing it.
 func RunOnceWithLogs(cfg *config.Config, repoDir string, logMgr *LogManager) error {
 	// Clear any stale active statuses from a previous interrupted run.
-	concernNames := make([]string, len(cfg.Concerns))
-	for i, c := range cfg.Concerns {
-		concernNames[i] = c.Name
+	stationNames := make([]string, len(cfg.Stations))
+	for i, c := range cfg.Stations {
+		stationNames[i] = c.Name
 	}
-	ResetActiveStatuses(repoDir, concernNames)
+	ResetActiveStatuses(repoDir, stationNames)
 
 	repo := gitops.NewRepo(repoDir)
 	repo.EnsureIdentity()
@@ -145,22 +145,22 @@ func RunOnceWithLogs(cfg *config.Config, repoDir string, logMgr *LogManager) err
 
 	for _, level := range levels {
 		if len(level) == 1 {
-			// Single concern: run directly (no goroutine overhead)
+			// Single station: run directly (no goroutine overhead)
 			c := level[0]
-			if !shouldSkipConcern(repoDir, c, failed) {
-				processConcernAndTrackFailure(cfg, repo, repoDir, c, logMgr, failed)
+			if !shouldSkipStation(repoDir, c, failed) {
+				processStationAndTrackFailure(cfg, repo, repoDir, c, logMgr, failed)
 			}
 		} else {
-			// Multiple independent concerns: run in parallel
+			// Multiple independent stations: run in parallel
 			var wg sync.WaitGroup
 			for _, c := range level {
-				if shouldSkipConcern(repoDir, c, failed) {
+				if shouldSkipStation(repoDir, c, failed) {
 					continue
 				}
 				wg.Add(1)
-				go func(concern config.Concern) {
+				go func(station config.Station) {
 					defer wg.Done()
-					processConcernAndTrackFailure(cfg, repo, repoDir, concern, logMgr, failed)
+					processStationAndTrackFailure(cfg, repo, repoDir, station, logMgr, failed)
 				}(c)
 			}
 			wg.Wait()
@@ -186,25 +186,25 @@ func (f *failedSet) has(name string) bool {
 	return f.m[name]
 }
 
-// concernContext holds the execution context for processing a single concern.
+// stationContext holds the execution context for processing a single station.
 // It bundles frequently-used parameters to reduce function signatures.
-type concernContext struct {
+type stationContext struct {
 	repoDir     string
-	concernName string
+	stationName string
 	startedAt   string
 	head        string
 	pid         int
 }
 
 // fail writes a failed status and returns a wrapped error.
-func (ctx *concernContext) fail(origErr error, wrappedErr error) error {
-	return processConcernFailed(ctx.repoDir, ctx.concernName, ctx.startedAt,
+func (ctx *stationContext) fail(origErr error, wrappedErr error) error {
+	return processStationFailed(ctx.repoDir, ctx.stationName, ctx.startedAt,
 		ctx.head, ctx.pid, origErr, wrappedErr)
 }
 
-func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, concern config.Concern, logMgr *LogManager) error {
+func processStation(cfg *config.Config, repo *gitops.Repo, repoDir string, station config.Station, logMgr *LogManager) error {
 	pid := os.Getpid()
-	watchedBranch := ResolveWatchedBranch(cfg, concern)
+	watchedBranch := ResolveWatchedBranch(cfg, station)
 
 	// Get current HEAD of watched branch
 	head, err := repo.HeadCommit(watchedBranch)
@@ -213,41 +213,41 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	}
 
 	// Check last-seen
-	lastSeen, err := LastSeen(repoDir, concern.Name)
+	lastSeen, err := LastSeen(repoDir, station.Name)
 	if err != nil {
 		return err
 	}
 	if lastSeen == head {
 		// Nothing new — preserve last_result from previous run
-		writeIdleStatus(repoDir, concern.Name, pid)
+		writeIdleStatus(repoDir, station.Name, pid)
 		return nil // nothing new
 	}
 
 	// Check if all new commits have skip markers (or agent commits on external branches)
-	skipAgentCommits := WatchesExternalBranch(cfg, concern)
+	skipAgentCommits := WatchesExternalBranch(cfg, station)
 	gi := loadIgnorePatterns(repoDir)
 	if allCommitsSkipped(repo, lastSeen, head, skipAgentCommits, gi) {
 		// Advance last-seen so we don't re-check these commits
-		if err := SetLastSeen(repoDir, concern.Name, head); err != nil {
+		if err := SetLastSeen(repoDir, station.Name, head); err != nil {
 			return fmt.Errorf("updating last-seen after skip: %w", err)
 		}
-		writeIdleStatus(repoDir, concern.Name, pid)
+		writeIdleStatus(repoDir, station.Name, pid)
 		return nil
 	}
 
 	// Create execution context to reduce parameter passing
-	ctx := &concernContext{
+	ctx := &stationContext{
 		repoDir:     repoDir,
-		concernName: concern.Name,
+		stationName: station.Name,
 		startedAt:   nowRFC3339(),
 		head:        head,
 		pid:         pid,
 	}
 
 	// Write change-detected status
-	writeChangeDetectedStatus(ctx.repoDir, ctx.concernName, ctx.startedAt, ctx.head, ctx.pid)
+	writeChangeDetectedStatus(ctx.repoDir, ctx.stationName, ctx.startedAt, ctx.head, ctx.pid)
 
-	outputBranch := cfg.Settings.BranchPrefix + concern.Name
+	outputBranch := cfg.Settings.BranchPrefix + station.Name
 
 	// Ensure output branch exists
 	if !repo.BranchExists(outputBranch) {
@@ -257,7 +257,7 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	}
 
 	// Ensure worktree exists
-	wtPath := gitops.WorktreePath(repoDir, cfg.Settings.BranchPrefix, concern.Name)
+	wtPath := gitops.WorktreePath(repoDir, cfg.Settings.BranchPrefix, station.Name)
 	if _, err := os.Stat(wtPath); os.IsNotExist(err) {
 		if err := fileutil.EnsureDir(filepath.Dir(wtPath)); err != nil {
 			return ctx.fail(err, fmt.Errorf("creating worktree directory: %w", err))
@@ -267,25 +267,25 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 		}
 	}
 
-	// Rebase output branch onto watched branch so prior concern
+	// Rebase output branch onto watched branch so prior station
 	// commits sit on top of the latest upstream state.
 	if err := rebaseWorktree(wtPath, watchedBranch); err != nil {
 		return ctx.fail(err, fmt.Errorf("rebasing %s onto %s: %w", outputBranch, watchedBranch, err))
 	}
 
 	// Assemble context
-	context, err := assembleContext(repo, cfg, concern, lastSeen, head)
+	context, err := assembleContext(repo, cfg, station, lastSeen, head)
 	if err != nil {
 		return ctx.fail(err, fmt.Errorf("assembling context: %w", err))
 	}
 
 	// Truncate log file to clear old logs from previous runs
-	if err := logMgr.truncateLogFile(concern.Name); err != nil {
+	if err := logMgr.truncateLogFile(station.Name); err != nil {
 		return ctx.fail(err, fmt.Errorf("truncating log file: %w", err))
 	}
 
-	// Get log file for this concern (after truncate, this returns the fresh file)
-	logFile, err := logMgr.getLogFile(concern.Name)
+	// Get log file for this station (after truncate, this returns the fresh file)
+	logFile, err := logMgr.getLogFile(station.Name)
 	if err != nil {
 		return ctx.fail(err, fmt.Errorf("getting log file: %w", err))
 	}
@@ -297,7 +297,7 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	}
 
 	// Write agent-started status
-	writeAgentRunningStatus(ctx.repoDir, ctx.concernName, ctx.startedAt, ctx.head, ctx.pid)
+	writeAgentRunningStatus(ctx.repoDir, ctx.stationName, ctx.startedAt, ctx.head, ctx.pid)
 
 	// Snapshot worktree HEAD before agent runs so we can detect rogue commits
 	wtRepo := gitops.NewRepo(wtPath)
@@ -307,7 +307,7 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	}
 
 	// Invoke agent in worktree
-	if err := invokeAgent(cfg, concern, wtPath, context, logFile); err != nil {
+	if err := invokeAgent(cfg, station, wtPath, context, logFile); err != nil {
 		return ctx.fail(err, fmt.Errorf("invoking agent: %w", err))
 	}
 
@@ -318,17 +318,17 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 		return ctx.fail(err, fmt.Errorf("checking worktree HEAD after agent: %w", err))
 	}
 	if postAgentHead != preAgentHead {
-		fileutil.LogError("concern %s: agent made direct commits — soft-resetting to preserve changes", concern.Name)
+		fileutil.LogError("station %s: agent made direct commits — soft-resetting to preserve changes", station.Name)
 		if err := wtRepo.ResetSoft(preAgentHead); err != nil {
 			return ctx.fail(err, fmt.Errorf("soft-resetting agent commits: %w", err))
 		}
 	}
 
 	// Write agent-succeeded status
-	writeCommittingStatus(ctx.repoDir, ctx.concernName, ctx.startedAt, ctx.head, ctx.pid)
+	writeCommittingStatus(ctx.repoDir, ctx.stationName, ctx.startedAt, ctx.head, ctx.pid)
 
 	// Check for changes and commit
-	changed, err := commitChanges(wtPath, concern, head)
+	changed, err := commitChanges(wtPath, station, head)
 	if err != nil {
 		return ctx.fail(err, fmt.Errorf("committing changes: %w", err))
 	}
@@ -336,14 +336,14 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	if !changed {
 		// Branch already at or ahead of watched after rebase — just add notes
 		commits, _ := repo.CommitsBetween(lastSeen, head)
-		noteMsg := fmt.Sprintf("[%s] Reviewed, no changes needed", strings.ToUpper(concern.Name))
+		noteMsg := fmt.Sprintf("[%s] Reviewed, no changes needed", strings.ToUpper(station.Name))
 		for _, hash := range commits {
 			_ = repo.AddNote(hash, noteMsg)
 		}
 	}
 
 	// Update last-seen
-	if err := SetLastSeen(repoDir, concern.Name, head); err != nil {
+	if err := SetLastSeen(repoDir, station.Name, head); err != nil {
 		return ctx.fail(err, fmt.Errorf("updating last-seen marker: %w", err))
 	}
 
@@ -352,21 +352,21 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	if changed {
 		result = ResultModified
 	}
-	writeIdleWithResultStatus(ctx.repoDir, ctx.concernName, ctx.startedAt, nowRFC3339(), ctx.head, result, ctx.pid)
+	writeIdleWithResultStatus(ctx.repoDir, ctx.stationName, ctx.startedAt, nowRFC3339(), ctx.head, result, ctx.pid)
 
 	return nil
 }
 
 // getLastResult retrieves the LastResult from the previous status, or "" if not found.
-func getLastResult(repoDir, concernName string) string {
-	prevStatus, _ := ReadStatus(repoDir, concernName)
+func getLastResult(repoDir, stationName string) string {
+	prevStatus, _ := ReadStatus(repoDir, stationName)
 	if prevStatus != nil {
 		return prevStatus.LastResult
 	}
 	return ""
 }
 
-// statusUpdate holds optional fields for writing concern status.
+// statusUpdate holds optional fields for writing station status.
 // Zero values are omitted from the written status.
 type statusUpdate struct {
 	state       string
@@ -378,10 +378,10 @@ type statusUpdate struct {
 	pid         int
 }
 
-// writeStatus writes a concern status with the given fields.
+// writeStatus writes a station status with the given fields.
 // This consolidates all status-writing into a single helper.
-func writeStatus(repoDir, concernName string, u statusUpdate) {
-	status := &ConcernStatus{
+func writeStatus(repoDir, stationName string, u statusUpdate) {
+	status := &StationStatus{
 		State:       u.state,
 		StartedAt:   u.startedAt,
 		CompletedAt: u.completedAt,
@@ -390,12 +390,12 @@ func writeStatus(repoDir, concernName string, u statusUpdate) {
 		Error:       u.errorMsg,
 		PID:         u.pid,
 	}
-	_ = WriteStatus(repoDir, concernName, status)
+	_ = WriteStatus(repoDir, stationName, status)
 }
 
 // writeChangeDetectedStatus writes a change-detected status.
-func writeChangeDetectedStatus(repoDir, concernName, startedAt, head string, pid int) {
-	writeStatus(repoDir, concernName, statusUpdate{
+func writeChangeDetectedStatus(repoDir, stationName, startedAt, head string, pid int) {
+	writeStatus(repoDir, stationName, statusUpdate{
 		state:       StateChangeDetected,
 		startedAt:   startedAt,
 		headAtStart: head,
@@ -404,8 +404,8 @@ func writeChangeDetectedStatus(repoDir, concernName, startedAt, head string, pid
 }
 
 // writeAgentRunningStatus writes an agent-running status.
-func writeAgentRunningStatus(repoDir, concernName, startedAt, head string, pid int) {
-	writeStatus(repoDir, concernName, statusUpdate{
+func writeAgentRunningStatus(repoDir, stationName, startedAt, head string, pid int) {
+	writeStatus(repoDir, stationName, statusUpdate{
 		state:       StateAgentRunning,
 		startedAt:   startedAt,
 		headAtStart: head,
@@ -414,8 +414,8 @@ func writeAgentRunningStatus(repoDir, concernName, startedAt, head string, pid i
 }
 
 // writeCommittingStatus writes a committing status.
-func writeCommittingStatus(repoDir, concernName, startedAt, head string, pid int) {
-	writeStatus(repoDir, concernName, statusUpdate{
+func writeCommittingStatus(repoDir, stationName, startedAt, head string, pid int) {
+	writeStatus(repoDir, stationName, statusUpdate{
 		state:       StateCommitting,
 		startedAt:   startedAt,
 		headAtStart: head,
@@ -424,8 +424,8 @@ func writeCommittingStatus(repoDir, concernName, startedAt, head string, pid int
 }
 
 // writeIdleWithResultStatus writes an idle status with a specific result.
-func writeIdleWithResultStatus(repoDir, concernName, startedAt, completedAt, head, result string, pid int) {
-	writeStatus(repoDir, concernName, statusUpdate{
+func writeIdleWithResultStatus(repoDir, stationName, startedAt, completedAt, head, result string, pid int) {
+	writeStatus(repoDir, stationName, statusUpdate{
 		state:       StateIdle,
 		startedAt:   startedAt,
 		completedAt: completedAt,
@@ -436,17 +436,17 @@ func writeIdleWithResultStatus(repoDir, concernName, startedAt, completedAt, hea
 }
 
 // writeIdleStatus writes an idle status, preserving the previous LastResult.
-func writeIdleStatus(repoDir, concernName string, pid int) {
-	writeStatus(repoDir, concernName, statusUpdate{
+func writeIdleStatus(repoDir, stationName string, pid int) {
+	writeStatus(repoDir, stationName, statusUpdate{
 		state:      StateIdle,
-		lastResult: getLastResult(repoDir, concernName),
+		lastResult: getLastResult(repoDir, stationName),
 		pid:        pid,
 	})
 }
 
 // writeFailedStatus writes a failed status with completion timestamp and error.
-func writeFailedStatus(repoDir, concernName, startedAt, completedAt, head, errorMsg string, pid int) {
-	writeStatus(repoDir, concernName, statusUpdate{
+func writeFailedStatus(repoDir, stationName, startedAt, completedAt, head, errorMsg string, pid int) {
+	writeStatus(repoDir, stationName, statusUpdate{
 		state:       StateFailed,
 		startedAt:   startedAt,
 		completedAt: completedAt,
@@ -457,35 +457,35 @@ func writeFailedStatus(repoDir, concernName, startedAt, completedAt, head, error
 }
 
 // writeSkippedStatus writes a skipped status with the given error message.
-func writeSkippedStatus(repoDir, concernName, errorMsg string, pid int) {
-	writeStatus(repoDir, concernName, statusUpdate{
+func writeSkippedStatus(repoDir, stationName, errorMsg string, pid int) {
+	writeStatus(repoDir, stationName, statusUpdate{
 		state:    StateSkipped,
 		errorMsg: errorMsg,
 		pid:      pid,
 	})
 }
 
-// skipUpstreamFailed logs and marks a concern as skipped due to upstream failure.
-func skipUpstreamFailed(repoDir, concernName string, pid int) {
-	fileutil.LogError("skipping %s: upstream concern failed", concernName)
-	writeSkippedStatus(repoDir, concernName, "upstream concern failed", pid)
+// skipUpstreamFailed logs and marks a station as skipped due to upstream failure.
+func skipUpstreamFailed(repoDir, stationName string, pid int) {
+	fileutil.LogError("skipping %s: upstream station failed", stationName)
+	writeSkippedStatus(repoDir, stationName, "upstream station failed", pid)
 }
 
-// processConcernFailed writes a failed status and returns the wrapped error.
-func processConcernFailed(repoDir, concernName, startedAt, head string, pid int, origErr, wrappedErr error) error {
-	writeFailedStatus(repoDir, concernName, startedAt, nowRFC3339(), head, origErr.Error(), pid)
+// processStationFailed writes a failed status and returns the wrapped error.
+func processStationFailed(repoDir, stationName, startedAt, head string, pid int, origErr, wrappedErr error) error {
+	writeFailedStatus(repoDir, stationName, startedAt, nowRFC3339(), head, origErr.Error(), pid)
 	return wrappedErr
 }
 
-func ResolveWatchedBranch(cfg *config.Config, concern config.Concern) string {
-	// If the concern watches another concern, resolve to its output branch
-	for _, c := range cfg.Concerns {
-		if c.Name == concern.Watches {
+func ResolveWatchedBranch(cfg *config.Config, station config.Station) string {
+	// If the station watches another station, resolve to its output branch
+	for _, c := range cfg.Stations {
+		if c.Name == station.Watches {
 			return cfg.Settings.BranchPrefix + c.Name
 		}
 	}
 	// Otherwise it's an external branch name
-	return concern.Watches
+	return station.Watches
 }
 
 // forEachCommitMessage iterates over commits and calls fn with each commit hash and message.
@@ -503,7 +503,7 @@ func forEachCommitMessage(repo *gitops.Repo, commits []string, fn func(hash, msg
 	return nil
 }
 
-func assembleContext(repo *gitops.Repo, cfg *config.Config, concern config.Concern, lastSeen, head string) (string, error) {
+func assembleContext(repo *gitops.Repo, cfg *config.Config, station config.Station, lastSeen, head string) (string, error) {
 	commits, err := repo.CommitsBetween(lastSeen, head)
 	if err != nil {
 		return "", err
@@ -511,13 +511,13 @@ func assembleContext(repo *gitops.Repo, cfg *config.Config, concern config.Conce
 
 	// When watching an external branch, filter out agent commits from context.
 	// After a rebase, these are our own output coming back — not new work.
-	skipAgent := WatchesExternalBranch(cfg, concern)
+	skipAgent := WatchesExternalBranch(cfg, station)
 
 	var sb strings.Builder
-	sb.WriteString(cfg.ResolvePreamble(concern) + "\n\n")
-	sb.WriteString("# Concern: " + concern.Name + "\n\n")
+	sb.WriteString(cfg.ResolvePreamble(station) + "\n\n")
+	sb.WriteString("# Station: " + station.Name + "\n\n")
 	sb.WriteString("## Prompt\n\n")
-	sb.WriteString(concern.Prompt + "\n\n")
+	sb.WriteString(station.Prompt + "\n\n")
 	sb.WriteString("## New commits to review\n\n")
 
 	// List commit hashes and messages (no diffs — the agent can inspect
@@ -568,7 +568,7 @@ func FilterEnv(excludePrefixes ...string) []string {
 	return result
 }
 
-func invokeAgent(cfg *config.Config, concern config.Concern, worktreeDir, context string, output io.Writer) error {
+func invokeAgent(cfg *config.Config, station config.Station, worktreeDir, context string, output io.Writer) error {
 	// Write context to a file in the worktree (available to the agent)
 	contextFile := filepath.Join(worktreeDir, ".line-context")
 	if err := os.WriteFile(contextFile, []byte(context), 0644); err != nil {
@@ -583,14 +583,14 @@ func invokeAgent(cfg *config.Config, concern config.Concern, worktreeDir, contex
 		}
 	}
 
-	// Resolve command and args: per-concern overrides take precedence over global
+	// Resolve command and args: per-station overrides take precedence over global
 	agentCommand := cfg.Agent.Command
-	if concern.Command != "" {
-		agentCommand = concern.Command
+	if station.Command != "" {
+		agentCommand = station.Command
 	}
 	agentArgs := cfg.Agent.Args
-	if concern.Args != nil {
-		agentArgs = concern.Args
+	if station.Args != nil {
+		agentArgs = station.Args
 	}
 
 	// Pass context file path as last arg, and pipe context to stdin
@@ -653,7 +653,7 @@ func writePermissions(worktreeDir string, perms *config.Permissions) error {
 	return fileutil.WriteJSON(fileutil.ClaudeSubpath(worktreeDir, "settings.json"), settings)
 }
 
-func commitChanges(worktreeDir string, concern config.Concern, triggeredBy string) (bool, error) {
+func commitChanges(worktreeDir string, station config.Station, triggeredBy string) (bool, error) {
 	repo := gitops.NewRepo(worktreeDir)
 
 	hasChanges, err := repo.HasChanges()
@@ -669,7 +669,7 @@ func commitChanges(worktreeDir string, concern config.Concern, triggeredBy strin
 	}
 
 	msg := fmt.Sprintf("[%s] Agent changes\n\nTriggered-By: %s",
-		strings.ToUpper(concern.Name), triggeredBy)
+		strings.ToUpper(station.Name), triggeredBy)
 
 	if err := repo.Commit(msg); err != nil {
 		return false, fmt.Errorf("committing: %w", err)
@@ -727,7 +727,7 @@ func allFilesIgnored(repo *gitops.Repo, hash string, gi *ignore.GitIgnore) bool 
 // allCommitsSkipped returns true if every commit between lastSeen and head
 // contains a skip marker ([skip ci], [ci skip], [skip line], [line skip]).
 // When skipAgentCommits is true, commits with a Triggered-By trailer are also
-// treated as skippable. This is used for concerns watching external branches
+// treated as skippable. This is used for stations watching external branches
 // (like main) where agent commits arrived via rebase and should not re-trigger.
 // Returns false if there are no commits or if any commit lacks a skip marker.
 func allCommitsSkipped(repo *gitops.Repo, lastSeen, head string, skipAgentCommits bool, gi *ignore.GitIgnore) bool {
@@ -765,8 +765,8 @@ func hasSkipMarker(msg string) bool {
 // runner. Agent commits are identified solely by the "Triggered-By:" trailer
 // that commitChanges adds. Co-Authored-By lines are NOT checked because users
 // working with AI coding tools (Claude Code, Copilot, Cursor) produce those
-// on normal commits — treating them as agent commits would cause the concern
-// chain to silently skip real work.
+// on normal commits — treating them as agent commits would cause the station
+// line to silently skip real work.
 func isAgentCommit(msg string) bool {
 	for _, line := range strings.Split(msg, "\n") {
 		if strings.HasPrefix(strings.TrimSpace(line), "Triggered-By:") {
@@ -776,23 +776,23 @@ func isAgentCommit(msg string) bool {
 	return false
 }
 
-// WatchesExternalBranch returns true if the concern watches a branch that is
-// not another concern's output — i.e., it watches an external branch like "main".
-func WatchesExternalBranch(cfg *config.Config, concern config.Concern) bool {
-	return !cfg.HasConcern(concern.Watches)
+// WatchesExternalBranch returns true if the station watches a branch that is
+// not another station's output — i.e., it watches an external branch like "main".
+func WatchesExternalBranch(cfg *config.Config, station config.Station) bool {
+	return !cfg.HasStation(station.Watches)
 }
 
-// topologicalLevels groups concerns into levels for parallel execution.
+// topologicalLevels groups stations into levels for parallel execution.
 // Level 0 = roots (watch external branches), Level 1 = depends only on level 0, etc.
-func topologicalLevels(cfg *config.Config) [][]config.Concern {
+func topologicalLevels(cfg *config.Config) [][]config.Station {
 	nameSet := cfg.BuildNameSet()
 
-	byName := make(map[string]config.Concern)
-	for _, c := range cfg.Concerns {
+	byName := make(map[string]config.Station)
+	for _, c := range cfg.Stations {
 		byName[c.Name] = c
 	}
 
-	// Compute level for each concern
+	// Compute level for each station
 	levels := make(map[string]int)
 	var computeLevel func(name string) int
 	computeLevel = func(name string) int {
@@ -810,7 +810,7 @@ func topologicalLevels(cfg *config.Config) [][]config.Concern {
 	}
 
 	maxLevel := 0
-	for _, c := range cfg.Concerns {
+	for _, c := range cfg.Stations {
 		l := computeLevel(c.Name)
 		if l > maxLevel {
 			maxLevel = l
@@ -818,8 +818,8 @@ func topologicalLevels(cfg *config.Config) [][]config.Concern {
 	}
 
 	// Group by level
-	result := make([][]config.Concern, maxLevel+1)
-	for _, c := range cfg.Concerns {
+	result := make([][]config.Station, maxLevel+1)
+	for _, c := range cfg.Stations {
 		l := levels[c.Name]
 		result[l] = append(result[l], c)
 	}

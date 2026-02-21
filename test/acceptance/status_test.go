@@ -23,7 +23,7 @@ agent:
   command: "sh"
   args: ["-c", "echo 'reviewed' > agent-review.txt"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -44,7 +44,7 @@ concerns:
 	})
 
 	Context("before any run", func() {
-		It("shows concerns as pending", func() {
+		It("shows stations as pending", func() {
 			cmd := exec.Command(binaryPath, "status", "--path", configPath)
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
@@ -60,7 +60,7 @@ concerns:
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
 			out := string(output)
-			// Source branch name and shortref should appear before concerns
+			// Source branch name and shortref should appear before stations
 			Expect(out).To(ContainSubstring("main"))
 			Expect(out).To(ContainSubstring(head[:8]))
 		})
@@ -83,7 +83,7 @@ concerns:
 			Expect(err).NotTo(HaveOccurred(), "run failed: %s", string(out))
 		})
 
-		It("shows concerns as caught up", func() {
+		It("shows stations as caught up", func() {
 			cmd := exec.Command(binaryPath, "status", "--path", configPath)
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
@@ -121,7 +121,7 @@ concerns:
 		})
 	})
 
-	Context("with failed concern", func() {
+	Context("with failed station", func() {
 		It("shows failed status with error message", func() {
 			failConfigPath := filepath.Join(repoDir, "line.yaml")
 			writeFile(failConfigPath, `
@@ -129,7 +129,7 @@ agent:
   command: "sh"
   args: ["-c", "exit 1"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "This will fail"

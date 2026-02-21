@@ -8,7 +8,7 @@ import (
 )
 
 var _ = Describe("line viz", func() {
-	Context("with a simple chain (main -> security -> docs)", func() {
+	Context("with a simple line (main -> security -> docs)", func() {
 		It("exits with code 0", func() {
 			cmd := exec.Command(binaryPath, "viz", "--path", testdataPath("valid.yaml"))
 			err := cmd.Run()
@@ -22,7 +22,7 @@ var _ = Describe("line viz", func() {
 			Expect(string(output)).To(ContainSubstring("[main]"))
 		})
 
-		It("shows concern names in order", func() {
+		It("shows station names in order", func() {
 			cmd := exec.Command(binaryPath, "viz", "--path", testdataPath("valid.yaml"))
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
@@ -32,8 +32,8 @@ var _ = Describe("line viz", func() {
 		})
 	})
 
-	Context("with a longer chain", func() {
-		It("shows all concerns", func() {
+	Context("with a longer line", func() {
+		It("shows all stations", func() {
 			cmd := exec.Command(binaryPath, "viz", "--path", testdataPath("complex_graph.yaml"))
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())

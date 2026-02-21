@@ -32,14 +32,14 @@ var _ = Describe("failure isolation", func() {
 		cleanupTestRepo(repoDir, tmpDir)
 	})
 
-	Context("with two independent concerns where one fails", func() {
+	Context("with two independent stations where one fails", func() {
 		BeforeEach(func() {
 			// Both watch main independently - broken uses failing agent, working uses ok agent
-			// We need separate agent commands per concern. Since the config uses one agent,
-			// we'll use a script that checks the context file for the concern name.
+			// We need separate agent commands per station. Since the config uses one agent,
+			// we'll use a script that checks the context file for the station name.
 			writeFile(filepath.Join(repoDir, "dispatch-agent.sh"), `#!/bin/sh
 CONTEXT_FILE="$1"
-if grep -q "Concern: broken" "$CONTEXT_FILE" 2>/dev/null; then
+if grep -q "Station: broken" "$CONTEXT_FILE" 2>/dev/null; then
   exit 1
 fi
 echo "reviewed" > agent-output.txt
@@ -52,7 +52,7 @@ agent:
   command: "sh"
   args: ["`+filepath.Join(repoDir, "dispatch-agent.sh")+`"]
 
-concerns:
+stations:
   - name: broken
     watches: main
     prompt: "This will fail"
@@ -68,24 +68,24 @@ concerns:
 			Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 		})
 
-		It("logs the failing concern's error", func() {
+		It("logs the failing station's error", func() {
 			cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 			output, _ := cmd.CombinedOutput()
 			Expect(string(output)).To(ContainSubstring("broken"))
 			Expect(string(output)).To(ContainSubstring("failed"))
 		})
 
-		It("still processes the working concern", func() {
+		It("still processes the working station", func() {
 			cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
-			// The working concern's output branch should exist
+			// The working station's output branch should exist
 			branches := runGitOutput(repoDir, "branch")
 			Expect(branches).To(ContainSubstring("line/working"))
 		})
 
-		It("does not advance last-seen for the failed concern", func() {
+		It("does not advance last-seen for the failed station", func() {
 			cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 			cmd.CombinedOutput()
 

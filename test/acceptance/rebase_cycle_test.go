@@ -18,14 +18,14 @@ var _ = Describe("post-rebase cycle prevention", func() {
 	BeforeEach(func() {
 		tmpDir, repoDir = setupTestRepo("line-rebase-cycle-*")
 
-		// Two-concern chain: security watches main, docs watches security
+		// Two-station line: security watches main, docs watches security
 		configPath = filepath.Join(repoDir, "line.yaml")
 		writeFile(configPath, `
 agent:
   command: "sh"
   args: ["-c", "date +%s%N > agent-output.txt"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -40,7 +40,7 @@ concerns:
 	})
 
 	It("does not re-trigger after rebasing main onto the terminal branch", func() {
-		// Run the chain once to process the initial commit
+		// Run the line once to process the initial commit
 		cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 		output, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "first run: %s", string(output))
@@ -53,7 +53,7 @@ concerns:
 		runGit(repoDir, "checkout", "main")
 		runGit(repoDir, "rebase", "line/docs")
 
-		// Run the chain again — should detect agent commits and skip
+		// Run the line again — should detect agent commits and skip
 		cmd2 := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 		output2, err := cmd2.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "second run: %s", string(output2))
@@ -73,13 +73,13 @@ agent:
   command: "sh"
   args: ["-c", "echo agent-was-here > agent-file.txt && git add -A && git commit -m 'agent did this\n\nCo-Authored-By: Claude <noreply@anthropic.com>'"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
 `)
 
-		// Run the chain — the agent will commit directly, but line should
+		// Run the stations — the agent will commit directly, but line should
 		// soft-reset that commit and create its own with Triggered-By.
 		cmd := exec.Command(binaryPath, "run", "--once", "--path", commitConfigPath)
 		output, err := cmd.CombinedOutput()
@@ -114,7 +114,7 @@ concerns:
 	})
 
 	It("processes only user commits after rebase + new user commit", func() {
-		// Run the chain once
+		// Run the line once
 		cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 		output, err := cmd.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "first run: %s", string(output))
@@ -128,11 +128,11 @@ concerns:
 		runGit(repoDir, "add", "user-feature.txt")
 		runGit(repoDir, "commit", "-m", "Add new feature")
 
-		// Write a capture script that saves context per-concern from stdin
+		// Write a capture script that saves context per-station from stdin
 		captureScript := filepath.Join(repoDir, "capture-agent.sh")
 		writeFile(captureScript, `#!/bin/sh
 ctx=$(cat)
-name=$(echo "$ctx" | grep '# Concern:' | head -1 | awk '{print $NF}')
+name=$(echo "$ctx" | grep '# Station:' | head -1 | awk '{print $NF}')
 printf '%s' "$ctx" > "/tmp/line-rebase-test-context-$name.txt"
 date +%s%N > agent-output.txt
 `)
@@ -144,7 +144,7 @@ date +%s%N > agent-output.txt
 agent:
   command: "`+captureScript+`"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -158,7 +158,7 @@ concerns:
 		output2, err := cmd2.CombinedOutput()
 		Expect(err).NotTo(HaveOccurred(), "second run: %s", string(output2))
 
-		// Read the security concern's captured context (watches external branch main)
+		// Read the security station's captured context (watches external branch main)
 		secContextData, err := os.ReadFile("/tmp/line-rebase-test-context-security.txt")
 		Expect(err).NotTo(HaveOccurred(), "should have captured security context file")
 		secContext := string(secContextData)

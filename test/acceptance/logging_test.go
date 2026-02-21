@@ -43,7 +43,7 @@ agent:
 settings:
   branch_prefix: "line/"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security issues"
@@ -63,17 +63,17 @@ concerns:
 			Expect(string(logContent)).To(ContainSubstring("AGENT_OUTPUT_MARKER"))
 		})
 
-		It("creates separate log files per concern", func() {
+		It("creates separate log files per station", func() {
 			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
 agent:
   command: "sh"
-  args: ["-c", "echo 'OUTPUT_FROM_'$LINE_CONCERN && touch reviewed.txt"]
+  args: ["-c", "echo 'OUTPUT_FROM_'$LINE_STATION && touch reviewed.txt"]
 
 settings:
   branch_prefix: "line/"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Security review"
@@ -82,9 +82,9 @@ concerns:
     prompt: "Style review"
 `)
 
-			// Set env var so agent can report which concern it's running for
+			// Set env var so agent can report which station it's running for
 			cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
-			cmd.Env = append(os.Environ(), "LINE_CONCERN=test")
+			cmd.Env = append(os.Environ(), "LINE_STATION=test")
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
 
@@ -109,7 +109,7 @@ agent:
 settings:
   branch_prefix: "line/"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review for security"
@@ -142,7 +142,7 @@ agent:
 settings:
   branch_prefix: "line/"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review"
@@ -177,7 +177,7 @@ agent:
 settings:
   branch_prefix: "line/"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review"
@@ -219,7 +219,7 @@ agent:
 settings:
   branch_prefix: "line/"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Review"

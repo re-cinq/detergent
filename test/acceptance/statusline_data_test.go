@@ -12,13 +12,13 @@ import (
 )
 
 type statuslineOutput struct {
-	Concerns           []statuslineConcern `json:"concerns"`
+	Stations           []statuslineStation `json:"stations"`
 	Roots              []string            `json:"roots"`
 	Graph              []graphEdge         `json:"graph"`
 	HasUnpickedCommits bool                `json:"has_unpicked_commits"`
 }
 
-type statuslineConcern struct {
+type statuslineStation struct {
 	Name       string `json:"name"`
 	Watches    string `json:"watches"`
 	State      string `json:"state"`
@@ -46,7 +46,7 @@ var _ = Describe("line statusline-data", func() {
 		cleanupTestRepo(repoDir, tmpDir)
 	})
 
-	Context("with a chain config before any run", func() {
+	Context("with a line config before any run", func() {
 		BeforeEach(func() {
 			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
@@ -54,7 +54,7 @@ agent:
   command: "sh"
   args: ["-c", "echo noop"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Security review"
@@ -67,17 +67,17 @@ concerns:
 `)
 		})
 
-		It("outputs valid JSON with all concerns", func() {
+		It("outputs valid JSON with all stations", func() {
 			cmd := exec.Command(binaryPath, "statusline-data", "--path", configPath)
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred(), "statusline-data failed: %s", string(output))
 
 			var result statuslineOutput
 			Expect(json.Unmarshal(output, &result)).To(Succeed())
-			Expect(result.Concerns).To(HaveLen(3))
+			Expect(result.Stations).To(HaveLen(3))
 		})
 
-		It("identifies root concerns correctly", func() {
+		It("identifies root stations correctly", func() {
 			cmd := exec.Command(binaryPath, "statusline-data", "--path", configPath)
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
@@ -99,14 +99,14 @@ concerns:
 			Expect(result.Graph[0].To).To(Equal("docs"))
 		})
 
-		It("shows unknown state for never-processed concerns", func() {
+		It("shows unknown state for never-processed stations", func() {
 			cmd := exec.Command(binaryPath, "statusline-data", "--path", configPath)
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
 
 			var result statuslineOutput
 			Expect(json.Unmarshal(output, &result)).To(Succeed())
-			for _, c := range result.Concerns {
+			for _, c := range result.Stations {
 				Expect(c.State).To(Equal("unknown"))
 			}
 		})
@@ -120,7 +120,7 @@ agent:
   command: "sh"
   args: ["-c", "echo 'reviewed' > agent-review.txt"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Security review"
@@ -137,10 +137,10 @@ concerns:
 
 			var result statuslineOutput
 			Expect(json.Unmarshal(output, &result)).To(Succeed())
-			Expect(result.Concerns).To(HaveLen(1))
-			Expect(result.Concerns[0].State).To(Equal("idle"))
-			Expect(result.Concerns[0].LastResult).To(Equal("modified"))
-			Expect(result.Concerns[0].BehindHead).To(BeFalse())
+			Expect(result.Stations).To(HaveLen(1))
+			Expect(result.Stations[0].State).To(Equal("idle"))
+			Expect(result.Stations[0].LastResult).To(Equal("modified"))
+			Expect(result.Stations[0].BehindHead).To(BeFalse())
 		})
 
 		It("shows behind_head when new commits appear", func() {
@@ -155,7 +155,7 @@ concerns:
 
 			var result statuslineOutput
 			Expect(json.Unmarshal(output, &result)).To(Succeed())
-			Expect(result.Concerns[0].BehindHead).To(BeTrue())
+			Expect(result.Stations[0].BehindHead).To(BeTrue())
 		})
 	})
 
@@ -166,7 +166,7 @@ concerns:
 agent:
   command: "true"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Security review"
@@ -184,8 +184,8 @@ concerns:
 
 			var result statuslineOutput
 			Expect(json.Unmarshal(output, &result)).To(Succeed())
-			Expect(result.Concerns[0].State).To(Equal("idle"))
-			Expect(result.Concerns[0].LastResult).To(Equal("noop"))
+			Expect(result.Stations[0].State).To(Equal("idle"))
+			Expect(result.Stations[0].LastResult).To(Equal("noop"))
 		})
 	})
 
@@ -196,7 +196,7 @@ concerns:
 agent:
   command: "true"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Security review"
@@ -218,7 +218,7 @@ concerns:
 
 			var result statuslineOutput
 			Expect(json.Unmarshal(output, &result)).To(Succeed())
-			Expect(result.Concerns[0].State).To(Equal("pending"))
+			Expect(result.Stations[0].State).To(Equal("pending"))
 		})
 	})
 
@@ -230,7 +230,7 @@ agent:
   command: "sh"
   args: ["-c", "echo 'reviewed' > agent-review.txt"]
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Security review"
@@ -240,7 +240,7 @@ concerns:
 			Expect(err).NotTo(HaveOccurred(), "run failed: %s", string(out))
 		})
 
-		It("is true when concern branch has commits ahead of watched branch", func() {
+		It("is true when station branch has commits ahead of watched branch", func() {
 			cmd := exec.Command(binaryPath, "statusline-data", "--path", configPath)
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
@@ -269,7 +269,7 @@ concerns:
 agent:
   command: "true"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Security review"
@@ -279,7 +279,7 @@ concerns:
 			Expect(err).NotTo(HaveOccurred(), "run failed: %s", string(out))
 		})
 
-		It("is false when concern branch has no commits ahead", func() {
+		It("is false when station branch has no commits ahead", func() {
 			cmd := exec.Command(binaryPath, "statusline-data", "--path", configPath)
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred())
@@ -297,7 +297,7 @@ concerns:
 agent:
   command: "true"
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "Security review"
@@ -316,8 +316,8 @@ concerns:
 
 			var result statuslineOutput
 			Expect(json.Unmarshal(output, &result)).To(Succeed())
-			Expect(result.Concerns[0].State).To(Equal("failed"))
-			Expect(result.Concerns[0].Error).To(ContainSubstring("no longer running"))
+			Expect(result.Stations[0].State).To(Equal("failed"))
+			Expect(result.Stations[0].Error).To(ContainSubstring("no longer running"))
 		})
 	})
 })

@@ -39,7 +39,7 @@ agent:
 
 settings:
 
-concerns:
+stations:
   - name: security
     watches: main
     prompt: "check"

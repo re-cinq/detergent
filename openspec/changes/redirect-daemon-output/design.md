@@ -1,9 +1,9 @@
 ## Context
 
-Currently, when Assembly Line runs in daemon mode, agent output (stdout/stderr) streams directly to the terminal. This is the default behavior from `exec.Cmd` in Go. Users running the daemon in a terminal session see interleaved output from multiple concerns mixed with their own shell interactions, making it difficult to:
+Currently, when Assembly Line runs in daemon mode, agent output (stdout/stderr) streams directly to the terminal. This is the default behavior from `exec.Cmd` in Go. Users running the daemon in a terminal session see interleaved output from multiple stations mixed with their own shell interactions, making it difficult to:
 
 1. Work in the terminal while the daemon runs
-2. Trace which output belongs to which concern
+2. Trace which output belongs to which station
 3. Review past agent activity after the fact
 
 The engine currently creates commands via `exec.Command` and runs them without explicit output redirection, inheriting the daemon's stdout/stderr.
@@ -11,7 +11,7 @@ The engine currently creates commands via `exec.Command` and runs them without e
 ## Goals / Non-Goals
 
 **Goals:**
-- Redirect per-concern agent output to dedicated log files
+- Redirect per-station agent output to dedicated log files
 - Provide clear context (commit hash) at the start of each agent invocation
 - Keep daemon lifecycle messages (startup, shutdown, errors) visible on terminal
 - Allow users to monitor agent activity via standard tools (tail -f)
@@ -26,7 +26,7 @@ The engine currently creates commands via `exec.Command` and runs them without e
 
 ### 1. Log file location: System temp directory
 
-**Decision:** Use `os.TempDir()` for log files (e.g., `/tmp/line-<concern>.log`)
+**Decision:** Use `os.TempDir()` for log files (e.g., `/tmp/line-<station>.log`)
 
 **Rationale:**
 - System temp is universally writable, no permissions issues
@@ -39,17 +39,17 @@ The engine currently creates commands via `exec.Command` and runs them without e
 - XDG data directory: more complex, overkill for ephemeral logs
 - Configurable path: adds complexity without clear benefit
 
-### 2. One log file per concern, append mode
+### 2. One log file per station, append mode
 
-**Decision:** Each concern gets a dedicated log file, opened in append mode. File created on first agent invocation for that concern.
+**Decision:** Each station gets a dedicated log file, opened in append mode. File created on first agent invocation for that station.
 
 **Rationale:**
-- Keeps concern output separated and easy to tail individually
+- Keeps station output separated and easy to tail individually
 - Append mode preserves history across daemon restarts
-- Lazy creation avoids empty files for concerns that never run
+- Lazy creation avoids empty files for stations that never run
 
 **Alternatives considered:**
-- Single combined log: harder to filter by concern
+- Single combined log: harder to filter by station
 - New file per invocation: many small files, harder to follow
 - Truncate on daemon start: loses useful history
 
@@ -69,7 +69,7 @@ The engine currently creates commands via `exec.Command` and runs them without e
 
 ### 4. File handle management
 
-**Decision:** Open log files once per concern (on first use), keep handles open for daemon lifetime, close on shutdown.
+**Decision:** Open log files once per station (on first use), keep handles open for daemon lifetime, close on shutdown.
 
 **Rationale:**
 - Avoids repeated open/close overhead
@@ -85,8 +85,8 @@ The engine currently creates commands via `exec.Command` and runs them without e
 **[Risk] Log files grow unbounded during long daemon sessions**
 → Mitigation: System temp is typically cleaned on reboot. Users can truncate files or configure system-level temp cleanup. Document this behavior.
 
-**[Risk] Concurrent writes if same concern runs twice**
-→ Mitigation: The current engine design processes one commit per concern at a time. If this changes, we'd need per-file mutex. Accept this limitation for now.
+**[Risk] Concurrent writes if same station runs twice**
+→ Mitigation: The current engine design processes one commit per station at a time. If this changes, we'd need per-file mutex. Accept this limitation for now.
 
 **[Risk] Lost output if daemon crashes**
 → Mitigation: Go's `os.File` writes are typically flushed on each `Write` call to file. Accept that buffered output may be lost on hard crash.

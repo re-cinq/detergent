@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("parallel concern execution", func() {
+var _ = Describe("parallel station execution", func() {
 	var tmpDir string
 	var repoDir string
 	var configPath string
@@ -22,7 +22,7 @@ var _ = Describe("parallel concern execution", func() {
 		cleanupTestRepo(repoDir, tmpDir)
 	})
 
-	Context("with two independent concerns that both watch main", func() {
+	Context("with two independent stations that both watch main", func() {
 		BeforeEach(func() {
 			// Each agent sleeps 1 second then writes a file.
 			// If parallel: total ~1s. If serial: total ~2s.
@@ -32,7 +32,7 @@ agent:
   command: "sh"
   args: ["-c", "sleep 1 && date +%s%N > agent-output.txt"]
 
-concerns:
+stations:
   - name: alpha
     watches: main
     prompt: "Check alpha"
@@ -42,7 +42,7 @@ concerns:
 `)
 		})
 
-		It("processes both concerns", func() {
+		It("processes both stations", func() {
 			cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))
@@ -52,7 +52,7 @@ concerns:
 			Expect(branches).To(ContainSubstring("line/beta"))
 		})
 
-		It("runs independent concerns concurrently (faster than serial)", func() {
+		It("runs independent stations concurrently (faster than serial)", func() {
 			start := time.Now()
 			cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 			output, err := cmd.CombinedOutput()
@@ -66,7 +66,7 @@ concerns:
 		})
 	})
 
-	Context("with dependent concerns (A -> B)", func() {
+	Context("with dependent stations (A -> B)", func() {
 		BeforeEach(func() {
 			configPath = filepath.Join(repoDir, "line.yaml")
 			writeFile(configPath, `
@@ -74,7 +74,7 @@ agent:
   command: "sh"
   args: ["-c", "echo done > agent-output.txt"]
 
-concerns:
+stations:
   - name: upstream
     watches: main
     prompt: "First pass"
@@ -84,7 +84,7 @@ concerns:
 `)
 		})
 
-		It("processes dependent concerns sequentially", func() {
+		It("processes dependent stations sequentially", func() {
 			cmd := exec.Command(binaryPath, "run", "--once", "--path", configPath)
 			output, err := cmd.CombinedOutput()
 			Expect(err).NotTo(HaveOccurred(), "output: %s", string(output))

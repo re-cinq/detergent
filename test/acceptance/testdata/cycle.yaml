@@ -1,7 +1,7 @@
 agent:
   command: "echo"
 
-concerns:
+stations:
   - name: alpha
     watches: beta
     prompt: "check alpha"
