@@ -16,7 +16,6 @@ type concernStatus struct {
 	StartedAt   string `json:"started_at,omitempty"`
 	CompletedAt string `json:"completed_at,omitempty"`
 	Error       string `json:"error,omitempty"`
-	LastSeen    string `json:"last_seen,omitempty"`
 	HeadAtStart string `json:"head_at_start,omitempty"`
 	PID         int    `json:"pid"`
 }
@@ -68,7 +67,6 @@ concerns:
 			Expect(s.PID).To(BeNumerically(">", 0))
 			Expect(s.StartedAt).NotTo(BeEmpty())
 			Expect(s.CompletedAt).NotTo(BeEmpty())
-			Expect(s.LastSeen).NotTo(BeEmpty())
 		})
 	})
 

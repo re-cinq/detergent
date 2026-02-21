@@ -51,7 +51,6 @@ type ConcernData struct {
 	State      string `json:"state"`
 	LastResult string `json:"last_result,omitempty"`
 	HeadCommit string `json:"head_commit,omitempty"`
-	LastSeen   string `json:"last_seen,omitempty"`
 	Error      string `json:"error,omitempty"`
 	BehindHead bool   `json:"behind_head"`
 }
@@ -88,7 +87,6 @@ func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 		if status != nil {
 			cd.State = status.State
 			cd.LastResult = status.LastResult
-			cd.LastSeen = status.LastSeen
 			cd.Error = status.Error
 
 			// Detect stale active states (process died)
@@ -100,22 +98,25 @@ func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 			cd.State = "unknown"
 		}
 
+		// Read last-seen from the canonical state file
+		lastSeen, _ := engine.LastSeen(repoDir, c.Name)
+
 		// Get HEAD of watched branch to determine if behind
 		watchedBranch := engine.ResolveWatchedBranch(cfg, c)
 		if head, err := repo.HeadCommit(watchedBranch); err == nil {
 			cd.HeadCommit = head
-			if cd.LastSeen != "" && cd.LastSeen != head {
+			if lastSeen != "" && lastSeen != head {
 				cd.BehindHead = true
 			}
 		}
 
 		// Normalize: idle + caught up + no last_result → noop
-		if cd.State == engine.StateIdle && cd.LastResult == "" && cd.LastSeen != "" && !cd.BehindHead {
+		if cd.State == engine.StateIdle && cd.LastResult == "" && lastSeen != "" && !cd.BehindHead {
 			cd.LastResult = engine.ResultNoop
 		}
 
 		// Normalize: idle + behind HEAD + previously ran → pending
-		if cd.State == engine.StateIdle && cd.BehindHead && cd.LastSeen != "" {
+		if cd.State == engine.StateIdle && cd.BehindHead && lastSeen != "" {
 			cd.State = "pending"
 		}
 

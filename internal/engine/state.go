@@ -58,7 +58,6 @@ type ConcernStatus struct {
 	StartedAt   string `json:"started_at,omitempty"`    // RFC3339
 	CompletedAt string `json:"completed_at,omitempty"`  // RFC3339
 	Error       string `json:"error,omitempty"`         // error message if failed
-	LastSeen    string `json:"last_seen,omitempty"`     // last processed commit hash
 	HeadAtStart string `json:"head_at_start,omitempty"` // HEAD when processing started
 	PID         int    `json:"pid"`                     // process ID
 }
@@ -144,7 +143,7 @@ func ResetActiveStatuses(repoDir string, concernNames []string) {
 		if !IsActiveState(status.State) {
 			continue
 		}
-		writeStaleFailedStatus(repoDir, name, status.State, status.LastSeen, status.LastResult, pid)
+		writeStaleFailedStatus(repoDir, name, status.State, status.LastResult, pid)
 	}
 }
 
@@ -159,11 +158,10 @@ func SetLastSeen(repoDir, concernName, hash string) error {
 
 // writeStaleFailedStatus writes a failed status for a stale active state that was interrupted.
 // This is called on startup when we find a concern stuck in an active state from a previous run.
-func writeStaleFailedStatus(repoDir, concernName, staleState, lastSeen, lastResult string, pid int) {
+func writeStaleFailedStatus(repoDir, concernName, staleState, lastResult string, pid int) {
 	writeStatus(repoDir, concernName, statusUpdate{
 		state:      StateFailed,
 		errorMsg:   fmt.Sprintf("stale %s state cleared on startup (previous process interrupted)", staleState),
-		lastSeen:   lastSeen,
 		lastResult: lastResult,
 		pid:        pid,
 	})

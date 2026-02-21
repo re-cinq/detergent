@@ -110,7 +110,7 @@ concerns:
 			statusDir := filepath.Join(repoDir, ".line", "status")
 			Expect(os.MkdirAll(statusDir, 0755)).To(Succeed())
 			writeFile(filepath.Join(statusDir, "security.json"),
-				`{"state":"agent_running","started_at":"2025-01-01T00:00:00Z","head_at_start":"abc123","last_seen":"","pid":99999}`)
+				`{"state":"agent_running","started_at":"2025-01-01T00:00:00Z","head_at_start":"abc123","pid":99999}`)
 
 			cmd := exec.Command(binaryPath, "status", "--path", configPath)
 			output, err := cmd.CombinedOutput()

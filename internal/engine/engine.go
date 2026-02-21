@@ -193,14 +193,13 @@ type concernContext struct {
 	concernName string
 	startedAt   string
 	head        string
-	lastSeen    string
 	pid         int
 }
 
 // fail writes a failed status and returns a wrapped error.
 func (ctx *concernContext) fail(origErr error, wrappedErr error) error {
 	return processConcernFailed(ctx.repoDir, ctx.concernName, ctx.startedAt,
-		ctx.head, ctx.lastSeen, ctx.pid, origErr, wrappedErr)
+		ctx.head, ctx.pid, origErr, wrappedErr)
 }
 
 func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, concern config.Concern, logMgr *LogManager) error {
@@ -220,7 +219,7 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	}
 	if lastSeen == head {
 		// Nothing new — preserve last_result from previous run
-		writeIdleStatus(repoDir, concern.Name, lastSeen, pid)
+		writeIdleStatus(repoDir, concern.Name, pid)
 		return nil // nothing new
 	}
 
@@ -232,7 +231,7 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 		if err := SetLastSeen(repoDir, concern.Name, head); err != nil {
 			return fmt.Errorf("updating last-seen after skip: %w", err)
 		}
-		writeIdleStatus(repoDir, concern.Name, head, pid)
+		writeIdleStatus(repoDir, concern.Name, pid)
 		return nil
 	}
 
@@ -242,12 +241,11 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 		concernName: concern.Name,
 		startedAt:   nowRFC3339(),
 		head:        head,
-		lastSeen:    lastSeen,
 		pid:         pid,
 	}
 
 	// Write change-detected status
-	writeChangeDetectedStatus(ctx.repoDir, ctx.concernName, ctx.startedAt, ctx.head, ctx.lastSeen, ctx.pid)
+	writeChangeDetectedStatus(ctx.repoDir, ctx.concernName, ctx.startedAt, ctx.head, ctx.pid)
 
 	outputBranch := cfg.Settings.BranchPrefix + concern.Name
 
@@ -299,7 +297,7 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	}
 
 	// Write agent-started status
-	writeAgentRunningStatus(ctx.repoDir, ctx.concernName, ctx.startedAt, ctx.head, ctx.lastSeen, ctx.pid)
+	writeAgentRunningStatus(ctx.repoDir, ctx.concernName, ctx.startedAt, ctx.head, ctx.pid)
 
 	// Snapshot worktree HEAD before agent runs so we can detect rogue commits
 	wtRepo := gitops.NewRepo(wtPath)
@@ -327,7 +325,7 @@ func processConcern(cfg *config.Config, repo *gitops.Repo, repoDir string, conce
 	}
 
 	// Write agent-succeeded status
-	writeCommittingStatus(ctx.repoDir, ctx.concernName, ctx.startedAt, ctx.head, ctx.lastSeen, ctx.pid)
+	writeCommittingStatus(ctx.repoDir, ctx.concernName, ctx.startedAt, ctx.head, ctx.pid)
 
 	// Check for changes and commit
 	changed, err := commitChanges(wtPath, concern, head)
@@ -375,7 +373,6 @@ type statusUpdate struct {
 	startedAt   string
 	completedAt string
 	headAtStart string
-	lastSeen    string
 	lastResult  string
 	errorMsg    string
 	pid         int
@@ -389,7 +386,6 @@ func writeStatus(repoDir, concernName string, u statusUpdate) {
 		StartedAt:   u.startedAt,
 		CompletedAt: u.completedAt,
 		HeadAtStart: u.headAtStart,
-		LastSeen:    u.lastSeen,
 		LastResult:  u.lastResult,
 		Error:       u.errorMsg,
 		PID:         u.pid,
@@ -398,34 +394,31 @@ func writeStatus(repoDir, concernName string, u statusUpdate) {
 }
 
 // writeChangeDetectedStatus writes a change-detected status.
-func writeChangeDetectedStatus(repoDir, concernName, startedAt, head, lastSeen string, pid int) {
+func writeChangeDetectedStatus(repoDir, concernName, startedAt, head string, pid int) {
 	writeStatus(repoDir, concernName, statusUpdate{
 		state:       StateChangeDetected,
 		startedAt:   startedAt,
 		headAtStart: head,
-		lastSeen:    lastSeen,
 		pid:         pid,
 	})
 }
 
 // writeAgentRunningStatus writes an agent-running status.
-func writeAgentRunningStatus(repoDir, concernName, startedAt, head, lastSeen string, pid int) {
+func writeAgentRunningStatus(repoDir, concernName, startedAt, head string, pid int) {
 	writeStatus(repoDir, concernName, statusUpdate{
 		state:       StateAgentRunning,
 		startedAt:   startedAt,
 		headAtStart: head,
-		lastSeen:    lastSeen,
 		pid:         pid,
 	})
 }
 
 // writeCommittingStatus writes a committing status.
-func writeCommittingStatus(repoDir, concernName, startedAt, head, lastSeen string, pid int) {
+func writeCommittingStatus(repoDir, concernName, startedAt, head string, pid int) {
 	writeStatus(repoDir, concernName, statusUpdate{
 		state:       StateCommitting,
 		startedAt:   startedAt,
 		headAtStart: head,
-		lastSeen:    lastSeen,
 		pid:         pid,
 	})
 }
@@ -437,30 +430,27 @@ func writeIdleWithResultStatus(repoDir, concernName, startedAt, completedAt, hea
 		startedAt:   startedAt,
 		completedAt: completedAt,
 		headAtStart: head,
-		lastSeen:    head,
 		lastResult:  result,
 		pid:         pid,
 	})
 }
 
 // writeIdleStatus writes an idle status, preserving the previous LastResult.
-func writeIdleStatus(repoDir, concernName, lastSeen string, pid int) {
+func writeIdleStatus(repoDir, concernName string, pid int) {
 	writeStatus(repoDir, concernName, statusUpdate{
 		state:      StateIdle,
-		lastSeen:   lastSeen,
 		lastResult: getLastResult(repoDir, concernName),
 		pid:        pid,
 	})
 }
 
 // writeFailedStatus writes a failed status with completion timestamp and error.
-func writeFailedStatus(repoDir, concernName, startedAt, completedAt, head, lastSeen, errorMsg string, pid int) {
+func writeFailedStatus(repoDir, concernName, startedAt, completedAt, head, errorMsg string, pid int) {
 	writeStatus(repoDir, concernName, statusUpdate{
 		state:       StateFailed,
 		startedAt:   startedAt,
 		completedAt: completedAt,
 		headAtStart: head,
-		lastSeen:    lastSeen,
 		errorMsg:    errorMsg,
 		pid:         pid,
 	})
@@ -482,8 +472,8 @@ func skipUpstreamFailed(repoDir, concernName string, pid int) {
 }
 
 // processConcernFailed writes a failed status and returns the wrapped error.
-func processConcernFailed(repoDir, concernName, startedAt, head, lastSeen string, pid int, origErr, wrappedErr error) error {
-	writeFailedStatus(repoDir, concernName, startedAt, nowRFC3339(), head, lastSeen, origErr.Error(), pid)
+func processConcernFailed(repoDir, concernName, startedAt, head string, pid int, origErr, wrappedErr error) error {
+	writeFailedStatus(repoDir, concernName, startedAt, nowRFC3339(), head, origErr.Error(), pid)
 	return wrappedErr
 }
 

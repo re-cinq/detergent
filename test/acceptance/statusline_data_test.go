@@ -24,7 +24,6 @@ type statuslineConcern struct {
 	State      string `json:"state"`
 	LastResult string `json:"last_result,omitempty"`
 	HeadCommit string `json:"head_commit,omitempty"`
-	LastSeen   string `json:"last_seen,omitempty"`
 	Error      string `json:"error,omitempty"`
 	BehindHead bool   `json:"behind_head"`
 }
@@ -307,7 +306,7 @@ concerns:
 			statusDir := filepath.Join(repoDir, ".line", "status")
 			Expect(os.MkdirAll(statusDir, 0755)).To(Succeed())
 			writeFile(filepath.Join(statusDir, "security.json"),
-				`{"state":"agent_running","started_at":"2025-01-01T00:00:00Z","head_at_start":"abc123","last_seen":"","pid":99999}`)
+				`{"state":"agent_running","started_at":"2025-01-01T00:00:00Z","head_at_start":"abc123","pid":99999}`)
 		})
 
 		It("marks stale active state as failed", func() {
