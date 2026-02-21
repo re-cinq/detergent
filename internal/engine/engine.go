@@ -757,36 +757,15 @@ func hasSkipMarker(msg string) bool {
 		strings.Contains(lower, "[line skip]")
 }
 
-// isAgentCommit checks if a commit message was produced by the assembly-line agent
-// or by a known AI coding tool. Agent commits contain a "Triggered-By:" trailer
-// (see commitChanges). As a safety net, commits with a Co-Authored-By line
-// matching known AI tool signatures are also treated as agent commits.
+// isAgentCommit checks if a commit message was produced by the assembly-line
+// runner. Agent commits are identified solely by the "Triggered-By:" trailer
+// that commitChanges adds. Co-Authored-By lines are NOT checked because users
+// working with AI coding tools (Claude Code, Copilot, Cursor) produce those
+// on normal commits — treating them as agent commits would cause the concern
+// chain to silently skip real work.
 func isAgentCommit(msg string) bool {
 	for _, line := range strings.Split(msg, "\n") {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "Triggered-By:") {
-			return true
-		}
-		if strings.HasPrefix(trimmed, "Co-Authored-By:") && containsAISignature(trimmed) {
-			return true
-		}
-	}
-	return false
-}
-
-// containsAISignature checks if a Co-Authored-By line contains a known
-// AI coding tool signature (case-insensitive).
-func containsAISignature(line string) bool {
-	lower := strings.ToLower(line)
-	signatures := []string{
-		"claude",
-		"copilot",
-		"cursor",
-		"noreply@anthropic.com",
-		"noreply@github.com",
-	}
-	for _, sig := range signatures {
-		if strings.Contains(lower, sig) {
+		if strings.HasPrefix(strings.TrimSpace(line), "Triggered-By:") {
 			return true
 		}
 	}
