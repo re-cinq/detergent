@@ -58,12 +58,19 @@ var triggerCmd = &cobra.Command{
 			runCmd.Stderr = nil
 			runCmd.SysProcAttr = detachedProcAttr()
 
-			// Strip CLAUDECODE env var so the runner can invoke Claude
-			// agents even when triggered from within a Claude Code session
+			// Strip env vars that interfere with the runner:
+			// - CLAUDECODE: so Claude agents don't refuse to start
+			// - GIT_DIR/GIT_INDEX_FILE/GIT_WORK_TREE: set by git during
+			//   hook execution, they override the worktree's own git
+			//   context and cause "index file open failed: Not a directory"
 			for _, e := range os.Environ() {
-				if !strings.HasPrefix(e, "CLAUDECODE=") {
-					runCmd.Env = append(runCmd.Env, e)
+				if strings.HasPrefix(e, "CLAUDECODE=") ||
+					strings.HasPrefix(e, "GIT_DIR=") ||
+					strings.HasPrefix(e, "GIT_INDEX_FILE=") ||
+					strings.HasPrefix(e, "GIT_WORK_TREE=") {
+					continue
 				}
+				runCmd.Env = append(runCmd.Env, e)
 			}
 
 			if err := runCmd.Start(); err != nil {

@@ -7,6 +7,7 @@ BUILD_DIR := bin
 
 build:
 	CGO_ENABLED=0 go build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) ./cmd/line
+	@if [ "$$(uname)" = "Darwin" ]; then codesign --force -s - $(BUILD_DIR)/$(BINARY_NAME); fi
 
 test:
 	go test ./test/acceptance/... -v
@@ -21,5 +22,6 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 install: build
-	cp $(BUILD_DIR)/$(BINARY_NAME) $(GOPATH)/bin/$(BINARY_NAME) 2>/dev/null || \
-	cp $(BUILD_DIR)/$(BINARY_NAME) $(HOME)/go/bin/$(BINARY_NAME)
+	@DEST=$$([ -d "$(GOPATH)/bin" ] && echo "$(GOPATH)/bin" || echo "$(HOME)/go/bin"); \
+	rm -f "$$DEST/$(BINARY_NAME)"; \
+	cp $(BUILD_DIR)/$(BINARY_NAME) "$$DEST/$(BINARY_NAME)"
