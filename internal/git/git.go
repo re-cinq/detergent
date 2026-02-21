@@ -12,8 +12,8 @@ import (
 
 // Retry constants for transient git errors.
 const (
-	retryInitialDelay = 50 * time.Millisecond
-	retryMaxAttempts  = 5
+	retryInitialDelay = 200 * time.Millisecond
+	retryMaxAttempts  = 6
 	retryMultiplier   = 2
 )
 
