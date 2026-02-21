@@ -43,6 +43,28 @@ concerns:
 			Expect(out).To(ContainSubstring("security"))
 			Expect(out).To(ContainSubstring("pending"))
 		})
+
+		It("shows the source branch with commit shortref", func() {
+			head := runGitOutput(repoDir, "rev-parse", "main")
+
+			cmd := exec.Command(binaryPath, "status", "--path", configPath)
+			output, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred())
+			out := string(output)
+			// Source branch name and shortref should appear before concerns
+			Expect(out).To(ContainSubstring("main"))
+			Expect(out).To(ContainSubstring(head[:8]))
+		})
+
+		It("shows dirty indicator when workspace has uncommitted changes", func() {
+			// Create an untracked file to make workspace dirty
+			writeFile(filepath.Join(repoDir, "dirty.txt"), "uncommitted change")
+
+			cmd := exec.Command(binaryPath, "status", "--path", configPath)
+			output, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(output)).To(ContainSubstring("dirty"))
+		})
 	})
 
 	Context("after a successful run", func() {

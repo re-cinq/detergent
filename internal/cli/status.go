@@ -99,6 +99,16 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool
 	fmt.Fprintln(w, "Concern Status")
 	fmt.Fprintln(w, "──────────────────────────────────────")
 
+	// Show the source branch as the first entry
+	sourceBranch := cfg.Settings.Watches
+	if head, err := repo.HeadCommit(sourceBranch); err == nil {
+		msg := short(head)
+		if dirty, derr := repo.HasChanges(); derr == nil && dirty {
+			msg += " (dirty)"
+		}
+		fmt.Fprintln(w, formatStatus(engine.StateIdle, "result", sourceBranch, msg))
+	}
+
 	var activeConcerns []string
 
 	for _, c := range cfg.Concerns {

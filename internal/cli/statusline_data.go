@@ -31,6 +31,9 @@ var statuslineDataCmd = &cobra.Command{
 
 // StatuslineOutput is the top-level JSON blob for statusline rendering.
 type StatuslineOutput struct {
+	SourceBranch       string        `json:"source_branch"`
+	SourceCommit       string        `json:"source_commit,omitempty"`
+	Dirty              bool          `json:"dirty"`
 	Concerns           []ConcernData `json:"concerns"`
 	Roots              []string      `json:"roots"`
 	Graph              []GraphEdge   `json:"graph"`
@@ -137,7 +140,21 @@ func gatherStatuslineData(cfg *config.Config, repoDir string) StatuslineOutput {
 		}
 	}
 
+	// Source branch info
+	sourceBranch := cfg.Settings.Watches
+	sourceCommit := ""
+	dirty := false
+	if head, err := repo.HeadCommit(sourceBranch); err == nil {
+		sourceCommit = head
+	}
+	if d, err := repo.HasChanges(); err == nil {
+		dirty = d
+	}
+
 	return StatuslineOutput{
+		SourceBranch:       sourceBranch,
+		SourceCommit:       sourceCommit,
+		Dirty:              dirty,
 		Concerns:           concerns,
 		Roots:              roots,
 		Graph:              graph,
