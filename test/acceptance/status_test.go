@@ -34,6 +34,15 @@ concerns:
 		cleanupTestRepo(repoDir, tmpDir)
 	})
 
+	Context("runner status", func() {
+		It("shows runner as not running when no runner is alive", func() {
+			cmd := exec.Command(binaryPath, "status", "--path", configPath)
+			output, err := cmd.CombinedOutput()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(output)).To(ContainSubstring("not running"))
+		})
+	})
+
 	Context("before any run", func() {
 		It("shows concerns as pending", func() {
 			cmd := exec.Command(binaryPath, "status", "--path", configPath)

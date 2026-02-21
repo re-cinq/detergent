@@ -109,6 +109,9 @@ func renderStatus(w io.Writer, cfg *config.Config, repoDir string, showLogs bool
 		fmt.Fprintln(w, formatStatus(engine.StateIdle, "result", sourceBranch, msg))
 	}
 
+	// Show runner status
+	fmt.Fprintln(w, formatRunner(repoDir))
+
 	var activeConcerns []string
 
 	for _, c := range cfg.Concerns {
@@ -222,6 +225,19 @@ func readLastLines(path string, n int) string {
 		lines = lines[len(lines)-n:]
 	}
 	return strings.Join(lines, "\n") + "\n"
+}
+
+// formatRunner returns a coloured runner status line.
+func formatRunner(repoDir string) string {
+	if !engine.IsRunnerAlive(repoDir) {
+		return fmt.Sprintf("  %s⊘  %-20s  not running%s", ansiRed, "runner", ansiReset)
+	}
+	pid := engine.ReadPID(repoDir)
+	since := ""
+	if info, err := os.Stat(engine.PIDPath(repoDir)); err == nil {
+		since = info.ModTime().Format("15:04")
+	}
+	return fmt.Sprintf("  %s·  %-20s  alive since %s (PID %d)%s", ansiDim, "runner", since, pid, ansiReset)
 }
 
 func short(hash string) string {
