@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/re-cinq/assembly-line/internal/markers"
 )
@@ -62,28 +61,16 @@ func removeHook(hooksDir, name string) error {
 		return fmt.Errorf("reading %s hook: %w", name, err)
 	}
 
-	content := string(existing)
-	if !strings.Contains(content, markers.Start) {
+	result, found, err := markers.Remove(string(existing))
+	if err != nil {
+		return fmt.Errorf("%s hook: %w", name, err)
+	}
+	if !found {
 		return nil
 	}
 
-	start := strings.Index(content, markers.Start)
-	end := strings.Index(content, markers.End)
-	if end == -1 {
-		return fmt.Errorf("%s hook: found start marker but no end marker", name)
-	}
-	end += len(markers.End)
-
-	// Remove the block and any surrounding blank line
-	before := content[:start]
-	after := content[end:]
-	after = strings.TrimPrefix(after, "\n")
-	// Trim trailing whitespace from what's left
-	result := strings.TrimRight(before, "\n") + after
-	if result == "" || result == shebang {
+	if result == "" {
 		result = shebang + "\n"
-	} else if !strings.HasSuffix(result, "\n") {
-		result += "\n"
 	}
 
 	if err := os.WriteFile(path, []byte(result), 0o755); err != nil {

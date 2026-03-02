@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/re-cinq/assembly-line/internal/markers"
 )
@@ -27,28 +26,12 @@ func Remove(repoDir string) error {
 		return fmt.Errorf("reading .gitignore: %w", err)
 	}
 
-	content := string(existing)
-	if !strings.Contains(content, markers.Start) {
+	result, found, err := markers.Remove(string(existing))
+	if err != nil {
+		return fmt.Errorf(".gitignore: %w", err)
+	}
+	if !found {
 		return nil
-	}
-
-	start := strings.Index(content, markers.Start)
-	end := strings.Index(content, markers.End)
-	if end == -1 {
-		return fmt.Errorf(".gitignore: found start marker but no end marker")
-	}
-	end += len(markers.End)
-
-	before := content[:start]
-	after := content[end:]
-	after = strings.TrimPrefix(after, "\n")
-	result := strings.TrimRight(before, "\n")
-	if result != "" && after != "" {
-		result += "\n"
-	}
-	result += after
-	if result != "" && !strings.HasSuffix(result, "\n") {
-		result += "\n"
 	}
 
 	if err := os.WriteFile(path, []byte(result), 0o644); err != nil {
