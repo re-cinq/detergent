@@ -81,7 +81,7 @@ CONFIG FORMAT (line.yaml)
 
   stations:
     - name: review                               # unique name → branch line/stn/review
-      prompt: "Review the code for issues."      # prompt text (required)
+      prompt: "Review the code for issues."      # prompt text
     - name: test
       command: custom-agent                      # overrides agent.command
       args: ["--flag", "-p"]                     # overrides agent.args

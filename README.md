@@ -41,7 +41,7 @@ An ordered list of Gates can be configured — each runs as a Git pre-commit hoo
 
 - A default agent `command` and `args` can be configured and are shared by all stations.
 - Each station can override the agent `command` and/or `args`.
-- Each station must have a `prompt`.
+- Each station can be configured with a `prompt`.
 - Station names must be unique; each maps to a Git branch (`line/stn/<name>`).
 
 ## Commands
