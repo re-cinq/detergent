@@ -212,6 +212,12 @@ func RemoveWorktree(repoDir, worktreePath string) error {
 	return err
 }
 
+// DeleteBranch force-deletes a local branch.
+func DeleteBranch(dir, name string) error {
+	_, err := Run(dir, "branch", "-D", name)
+	return err
+}
+
 // PruneWorktrees prunes stale worktree bookkeeping entries.
 func PruneWorktrees(repoDir string) error {
 	_, err := Run(repoDir, "worktree", "prune")

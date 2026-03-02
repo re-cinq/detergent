@@ -87,6 +87,11 @@ The intention is that rather than expecting an agent to remember to do various c
 - **RUN-15**: The user must be able to continue working in their repo while a line is running: all stations must operate in ephemeral git worktrees under the system temp dir.
 - **RUN-16**: Stations must rebase onto their predecessor, not merge, to keep history linear.
 
+### `line clear`
+
+- **CLEAR-1**: Stops any active line runs, terminates all agents, clears all state files, drops the station branches and worktrees.
+- **CLEAR-2**: Prompts for confirmation unless `--force` is passed.
+
 ### `line status`
 
 - **STAT-1**: Prints a list of all stations, starting with the watched branch. For each station the shortref of HEAD is shown, along with an indicator of if the dir is dirty.
