@@ -11,8 +11,8 @@ gates:
 
 stations:
   - name: docs
-    prompt: "Check that README.md and the explain text in cmd/explain.go are up-to-date with TRUTH.md. If anything is missing or out of date, fix it. Do not change any other files and do not push."
+    prompt: "Check that README.md and the explain text in cmd/explain.go are up-to-date with TRUTH.md. If anything is missing or out of date, fix it. Do not change any other files."
   - name: deadcode
-    prompt: "Delete any unused code, without reducing end-to-end test coverage. Do not commit or push."
+    prompt: "Delete any unused code, without reducing end-to-end test coverage."
   - name: dry
-    prompt: "Deduplicate code, without reducing end-to-end test coverage. Do not commit or push."
+    prompt: "Deduplicate code, without reducing end-to-end test coverage."
