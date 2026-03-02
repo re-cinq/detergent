@@ -137,6 +137,59 @@ func printStatus(dir string, cfg *config.Config, clearEOL bool) error {
 		eol = "\033[K\n"
 	}
 
+	// Pre-compute watched branch info and station distances for the
+	// commit-distance indicator column.
+	watchedRef, _ := git.HeadShortRef(dir)
+	watchedDirty, _ := git.IsDirty(dir)
+	watchedFullRef, _ := git.Run(dir, "rev-parse", cfg.Settings.Watches)
+
+	type stationDist struct {
+		ahead, behind int
+		exists        bool
+	}
+	dists := make([]stationDist, len(cfg.Stations))
+	maxBehind := 0
+	if watchedFullRef != "" {
+		for i, station := range cfg.Stations {
+			branchName := git.StationBranchName(station.Name)
+			if git.BranchExists(dir, branchName) {
+				ahead, behind, err := git.RevDistance(dir, watchedFullRef, branchName)
+				if err == nil {
+					dists[i] = stationDist{ahead: ahead, behind: behind, exists: true}
+					if behind > maxBehind {
+						maxBehind = behind
+					}
+				}
+			}
+		}
+	}
+
+	// Build indicator strings: master shows dashes-then-H, stations show
+	// their position relative to HEAD.
+	masterInd := strings.Repeat("-", maxBehind) + "H"
+	stnInds := make([]string, len(cfg.Stations))
+	for i, d := range dists {
+		switch {
+		case !d.exists:
+			stnInds[i] = ""
+		case d.behind > 0:
+			stnInds[i] = strings.Repeat("-", d.behind)
+		case d.ahead > 0:
+			stnInds[i] = "H" + strings.Repeat("+", d.ahead)
+		default:
+			stnInds[i] = "H"
+		}
+	}
+
+	// Indicator column width = longest indicator + 1 space padding.
+	indW := len(masterInd)
+	for _, s := range stnInds {
+		if len(s) > indW {
+			indW = len(s)
+		}
+	}
+	indW++ // trailing space
+
 	// STAT-3: Line runner indicator at the top
 	pid, _ := state.ReadPID(dir)
 	configName := filepath.Base(configPath)
@@ -146,25 +199,20 @@ func printStatus(dir string, cfg *config.Config, clearEOL bool) error {
 		fmt.Fprintf(os.Stdout, "%s⏸%s %s%s", colorGrey, colorReset, configName, eol)
 	}
 
-	// Blank line + column headers
+	// Blank line + column headers (indicator column has no header)
 	fmt.Fprintf(os.Stdout, "%s", eol)
-	fmt.Fprintf(os.Stdout, "%-21s%-9s%s%s", "Stations", "Head", "Status", eol)
+	fmt.Fprintf(os.Stdout, "%-21s%-*s%-9s%s%s", "Stations", indW, "", "Head", "Status", eol)
 
 	// Print watched branch
-	watchedRef, _ := git.HeadShortRef(dir)
-	watchedDirty, _ := git.IsDirty(dir)
 	dirtyStr := ""
 	if watchedDirty {
 		dirtyStr = "(dirty)"
 	}
-	fmt.Fprintf(os.Stdout, "%-21s%-9s%s%s", cfg.Settings.Watches, watchedRef, dirtyStr, eol)
-
-	// Get the watched branch full ref for ancestor checks (STAT-5: on-demand)
-	watchedFullRef, _ := git.Run(dir, "rev-parse", cfg.Settings.Watches)
+	fmt.Fprintf(os.Stdout, "%-21s%-*s%-9s%s%s", cfg.Settings.Watches, indW, masterInd, watchedRef, dirtyStr, eol)
 
 	// Print each station, tracking the first running station for log display
 	var runningStation string
-	for _, station := range cfg.Stations {
+	for i, station := range cfg.Stations {
 		branchName := git.StationBranchName(station.Name)
 		ref := "-"
 
@@ -184,7 +232,7 @@ func printStatus(dir string, cfg *config.Config, clearEOL bool) error {
 			}
 		}
 
-		fmt.Fprintf(os.Stdout, "%s  %s %-17s%-9s[%s]%s%s%s", info.color, info.symbol, station.Name, ref, info.name, extra, colorReset, eol)
+		fmt.Fprintf(os.Stdout, "%s  %s %-17s%-*s%-9s[%s]%s%s%s", info.color, info.symbol, station.Name, indW, stnInds[i], ref, info.name, extra, colorReset, eol)
 	}
 
 	// In follow mode, show last lines of the running agent's output.

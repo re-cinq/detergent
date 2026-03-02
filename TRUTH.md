@@ -106,6 +106,7 @@ The intention is that rather than expecting an agent to remember to do various c
     - ● in progress
 - **STAT-7** An in-progress station should show how long the respective agent PID has been alive for (eg `52s`;`5m 32s`)
 - **STAT-8**: A station is considered "up to date" if the only commits between its HEAD and the watched branch HEAD are skip-marker commits (`[skip line]`, `[line skip]`, `[skip ci]`, `[ci skip]`).
+- **STAT-10**: `line status` shows a commit-distance indicator between the station name and its HEAD ref. `H` marks HEAD; each `+` after `H` is one commit a station is ahead; each `-` before `H` on the master row (or in place of `H` on a station row) is one commit behind.
 
 ### `line statusline`
 

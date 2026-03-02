@@ -301,6 +301,75 @@ stations:
 		_ = cmd.Wait()
 	})
 
+	// STAT-10: Commit distance indicator column
+	It("shows H on master and stations when all are at HEAD [STAT-10]", func() {
+		agentScript := writeMockAgent(dir)
+		writeConfig(dir, `agent:
+  command: `+agentScript+`
+  args: ["-p"]
+
+settings:
+  watches: master
+
+stations:
+  - name: review
+    prompt: "Review code"
+`)
+		writeFile(dir, "code.go", "package main\n")
+		git(dir, "add", ".")
+		git(dir, "commit", "-m", "add code")
+
+		lineOK(dir, "run")
+
+		out := lineOK(dir, "status")
+		// Station should show H+ (ahead of HEAD by agent commit)
+		Expect(out).To(MatchRegexp(`review\s+H\+`))
+		// Master row should show just H (no dashes, stations aren't behind)
+		Expect(out).To(MatchRegexp(`master\s+H\s+[0-9a-f]`))
+	})
+
+	It("shows dashes on master and stations when HEAD is ahead [STAT-10]", func() {
+		agentScript := writeMockAgent(dir)
+		writeConfig(dir, `agent:
+  command: `+agentScript+`
+  args: ["-p"]
+
+settings:
+  watches: master
+
+stations:
+  - name: review
+    prompt: "Review code"
+`)
+		writeFile(dir, "code.go", "package main\n")
+		git(dir, "add", ".")
+		git(dir, "commit", "-m", "add code")
+
+		lineOK(dir, "run")
+
+		// Add two more commits to master so HEAD is 2 ahead of station
+		writeFile(dir, "extra1.go", "package main\n")
+		git(dir, "add", ".")
+		git(dir, "commit", "-m", "extra 1")
+		writeFile(dir, "extra2.go", "package main\n")
+		git(dir, "add", ".")
+		git(dir, "commit", "-m", "extra 2")
+
+		out := lineOK(dir, "status")
+		// Master should show --H (two dashes for two commits ahead)
+		Expect(out).To(MatchRegexp(`master\s+--H\s+[0-9a-f]`))
+		// Station should show -- (two behind)
+		Expect(out).To(MatchRegexp(`review\s+--\s+[0-9a-f]`))
+	})
+
+	It("shows no indicator for stations without branches [STAT-10]", func() {
+		out := lineOK(dir, "status")
+		// Master should show H
+		Expect(out).To(MatchRegexp(`master\s+H\s+[0-9a-f]`))
+		// Station has no branch, ref is "-", no indicator between name and ref
+		Expect(out).To(MatchRegexp(`review\s+-\s+\[pending\]`))
+	})
+
 	// STAT-9: After /line-rebase, all stations should show "up to date"
 	// because their work is already contained in the watched branch.
 	It("shows all stations as up to date after line-rebase picks up terminal station [STAT-9]", func() {

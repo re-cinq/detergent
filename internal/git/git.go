@@ -146,6 +146,17 @@ func ResetHard(dir, ref string) error {
 	return err
 }
 
+// RevDistance returns how many commits ref2 is ahead of and behind ref1.
+// ahead = commits in ref2 not in ref1, behind = commits in ref1 not in ref2.
+func RevDistance(dir, ref1, ref2 string) (ahead, behind int, err error) {
+	out, err := Run(dir, "rev-list", "--left-right", "--count", ref1+"..."+ref2)
+	if err != nil {
+		return 0, 0, err
+	}
+	_, err = fmt.Sscanf(out, "%d\t%d", &behind, &ahead)
+	return
+}
+
 // IsAncestor returns true if ancestor's HEAD is reachable from descendant.
 func IsAncestor(dir, ancestor, descendant string) bool {
 	_, err := Run(dir, "merge-base", "--is-ancestor", ancestor, descendant)
