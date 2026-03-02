@@ -22,15 +22,15 @@ gates:
 
 stations:
   - name: deadcode
-    prompt: "If you use beads, act on the work immediately and do not exit until those beads have been resolved. Remove any unused code. Do not change any other files and do not push. Don't bother testing, we'll do that later."
+    prompt: "Remove any unused code."
   - name: dry
     args: ["--dangerously-skip-permissions", "--model", "haiku", "-p"]
-    prompt: "If you use beads, act on the work immediately and do not exit until those beads have been resolved. Deduplicate code. Do not change any other files and do not push. Don't bother testing, we'll do that later."
+    prompt: "Deduplicate code."
   - name: test
     args: ["--dangerously-skip-permissions", "--model", "haiku", "-p"]
-    prompt: "If you use beads, act on the work immediately and do not exit until those beads have been resolved. Run all the tests, fix any failures. Do not reduce test coverage. Do not change any other files and do not push."
+    prompt: "Run all the tests, fix any failures."
   - name: docs
-    prompt: "If you use beads, act on the work immediately and do not exit until those beads have been resolved. Ensure README is up to date with latest features. Don't change any other files and do not push."
+    prompt: "Ensure README is up to date with latest features."
 ```
 
 ### Gates
@@ -79,6 +79,8 @@ An ordered list of Gates can be configured — each runs as a Git pre-commit hoo
 - If a new commit arrives while the line is running, all agents are stopped, existing station-branch commits are preserved, and the line restarts from the beginning with the latest commit.
 - Stations rebase onto their predecessor (not merge) to keep history linear.
 - A failed station blocks the line and is reported as 'failed'.
+
+### `line
 
 ### `line status`
 
