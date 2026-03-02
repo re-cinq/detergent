@@ -9,6 +9,7 @@ import (
 	"github.com/re-cinq/assembly-line/internal/git"
 	"github.com/re-cinq/assembly-line/internal/ignore"
 	"github.com/re-cinq/assembly-line/internal/state"
+	"github.com/re-cinq/assembly-line/internal/tmux"
 )
 
 // commitSkipMarker is appended to station commit messages. It must be one of
@@ -85,6 +86,11 @@ func Run(dir string, cfg *config.Config) error {
 	// Set env var to prevent retriggering
 	os.Setenv("LINE_RUNNING", "1")
 	defer os.Unsetenv("LINE_RUNNING")
+
+	// Clean up stale tmux sessions from previous runs
+	if tmux.Available() {
+		_ = tmux.CleanStaleSessions(dir)
+	}
 
 	// RUN-15: Clean up stale worktrees from previous runs and after this run.
 	// Remove directories first so that prune sees them as gone and cleans

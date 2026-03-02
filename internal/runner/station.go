@@ -58,7 +58,7 @@ func runStation(dir string, cfg *config.Config, station config.Station, predeces
 	}
 
 	// Run the agent in the worktree (RUN-1, RUN-12)
-	agent, err := startAgent(wtPath, resolved.Command, resolved.Args, resolved.Prompt)
+	agent, err := startAgent(wtPath, resolved.Command, resolved.Args, resolved.Prompt, station.Name, dir)
 	if err != nil {
 		return fmt.Errorf("station %s: %w", station.Name, err)
 	}
@@ -66,11 +66,17 @@ func runStation(dir string, cfg *config.Config, station config.Station, predeces
 	// Write station PID file in main repo so status can detect the running agent
 	_ = state.WriteStationPID(dir, station.Name, agent.pid(), time.Now())
 
+	// Write tmux session name if running in tmux
+	if agent.session() != "" {
+		_ = state.WriteStationTmux(dir, station.Name, agent.session())
+	}
+
 	// Wait for agent to complete
 	agentErr := agent.wait()
 
-	// Clean up station PID file
+	// Clean up station state files
 	_ = state.RemoveStationPID(dir, station.Name)
+	_ = state.RemoveStationTmux(dir, station.Name)
 
 	// RUN-14: A failed station blocks the line and is reported as 'failed'
 	if agentErr != nil {

@@ -2,7 +2,11 @@
 
 package state
 
-import "syscall"
+import (
+	"syscall"
+
+	"github.com/re-cinq/assembly-line/internal/tmux"
+)
 
 // IsProcessRunning checks if a process with the given PID is running.
 func IsProcessRunning(pid int) bool {
@@ -31,4 +35,16 @@ func KillProcessGroup(pid int) error {
 		return syscall.Kill(pid, syscall.SIGTERM)
 	}
 	return nil
+}
+
+// KillTmuxSession kills the process inside a tmux session (via its pane PID
+// process group) and then kills the session itself.
+func KillTmuxSession(sessionName string) {
+	if sessionName == "" || !tmux.Available() {
+		return
+	}
+	if pid, err := tmux.PanePID(sessionName); err == nil && pid > 0 {
+		_ = KillProcessGroup(pid)
+	}
+	_ = tmux.KillSession(sessionName)
 }

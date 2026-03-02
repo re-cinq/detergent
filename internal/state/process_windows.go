@@ -31,3 +31,6 @@ func KillProcessGroup(pid int) error {
 	}
 	return process.Kill()
 }
+
+// KillTmuxSession is a no-op on Windows (tmux is unavailable).
+func KillTmuxSession(sessionName string) {}

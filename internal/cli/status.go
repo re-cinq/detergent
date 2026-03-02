@@ -5,13 +5,17 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/re-cinq/assembly-line/internal/config"
 	"github.com/re-cinq/assembly-line/internal/git"
 	"github.com/re-cinq/assembly-line/internal/runner"
 	"github.com/re-cinq/assembly-line/internal/state"
+	"github.com/re-cinq/assembly-line/internal/tmux"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 // ANSI color codes for STAT-2 color coding
@@ -62,7 +66,7 @@ var statusCmd = &cobra.Command{
 
 			if followFlag {
 				// Clear from cursor to end of screen (remove stale lines)
-				fmt.Print("\033[J")
+				fmt.Print("\033[J\033[?25l")
 			}
 
 			if !followFlag {
@@ -158,7 +162,8 @@ func printStatus(dir string, cfg *config.Config, clearEOL bool) error {
 	// Get the watched branch full ref for ancestor checks (STAT-5: on-demand)
 	watchedFullRef, _ := git.Run(dir, "rev-parse", cfg.Settings.Watches)
 
-	// Print each station
+	// Print each station, tracking the first running station for log display
+	var runningStation string
 	for _, station := range cfg.Stations {
 		branchName := git.StationBranchName(station.Name)
 		ref := "-"
@@ -174,12 +179,165 @@ func printStatus(dir string, cfg *config.Config, clearEOL bool) error {
 		if !info.startTime.IsZero() {
 			// STAT-7: Show uptime duration instead of PID/start time
 			extra = fmt.Sprintf(" (%s)", formatUptime(info.startTime))
+			if runningStation == "" {
+				runningStation = station.Name
+			}
 		}
 
 		fmt.Fprintf(os.Stdout, "%s  %s %-17s%-9s[%s]%s%s%s", info.color, info.symbol, station.Name, ref, info.name, extra, colorReset, eol)
 	}
 
+	// In follow mode, show last lines of the running agent's output.
+	// The log window height is dynamically sized to fill the terminal.
+	if clearEOL && runningStation != "" {
+		// Fixed rows: runner indicator + blank + column headers + watched branch
+		//             + stations + blank separator + log header + 1 trailing
+		//             newline (prevents the last \n from scrolling the terminal)
+		fixedRows := 7 + len(cfg.Stations)
+		logLines, termWidth := logWindowSize(fixedRows)
+		if !printAgentLog(dir, runningStation, eol, logLines, termWidth) && !tmux.Available() {
+			fmt.Fprintf(os.Stdout, "%s%sInstall tmux to see streaming agent output%s%s", eol, colorGrey, colorReset, eol)
+		}
+	}
+
 	return nil
+}
+
+// ansiRE matches ANSI escape sequences (CSI, OSC, and single-char escapes).
+var ansiRE = regexp.MustCompile(`\x1b(?:\[[0-9;?]*[a-zA-Z]|\][^\x07]*\x07|\[[^\x1b]*|.)`)
+
+// stripANSI removes ANSI escape sequences and carriage returns from s.
+func stripANSI(s string) string {
+	s = ansiRE.ReplaceAllString(s, "")
+	s = strings.ReplaceAll(s, "\r", "")
+	return s
+}
+
+// logWindowSize returns the number of lines available for the log window and
+// the terminal width. Lines are truncated to the terminal width to prevent
+// wrapping from blowing past the calculated height.
+func logWindowSize(fixedRows int) (lines, width int) {
+	const fallbackLines = 15
+	const fallbackWidth = 0 // 0 means no truncation
+	const minLines = 3
+	w, h, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil || h <= 0 {
+		return fallbackLines, fallbackWidth
+	}
+	available := h - fixedRows
+	if available < minLines {
+		available = minLines
+	}
+	return available, w
+}
+
+// printAgentLog prints the last non-blank lines of agent output for the given station.
+// Prefers tmux capture-pane (clean rendered pane content, live in interactive mode)
+// over the raw pipe-pane log file (which contains ANSI escape sequences).
+// Lines are truncated to termWidth to prevent wrapping (0 means no truncation).
+func printAgentLog(dir, stationName, eol string, lineCount, termWidth int) bool {
+	var lines []string
+
+	// Prefer capture-pane: in interactive mode (no -p), Claude Code streams
+	// output to the pane and capture-pane shows the live rendered screen.
+	if sessionName := state.ReadStationTmux(dir, stationName); sessionName != "" && tmux.Available() {
+		if captured, err := tmux.CapturePaneLines(sessionName, lineCount); err == nil {
+			trimmed := stripTUIChrome(trimBlankLines(strings.Split(captured, "\n")))
+			if len(trimmed) > lineCount {
+				trimmed = trimmed[len(trimmed)-lineCount:]
+			}
+			lines = trimmed
+		}
+	}
+
+	// Fall back to pipe-pane log file (strip ANSI escape sequences)
+	if len(lines) == 0 {
+		logPath := state.StationLogPath(dir, stationName)
+		if data, err := os.ReadFile(logPath); err == nil && len(data) > 0 {
+			cleaned := stripANSI(string(data))
+			all := trimBlankLines(strings.Split(cleaned, "\n"))
+			start := 0
+			if len(all) > lineCount {
+				start = len(all) - lineCount
+			}
+			lines = all[start:]
+		}
+	}
+
+	if len(lines) == 0 {
+		return false
+	}
+
+	// Print separator and output in grey, truncating lines to terminal width
+	fmt.Fprintf(os.Stdout, "%s", eol)
+	fmt.Fprintf(os.Stdout, "%s--- %s ---%s%s", colorGrey, stationName, colorReset, eol)
+	for _, line := range lines {
+		fmt.Fprintf(os.Stdout, "%s%s%s%s", colorGrey, truncateLine(line, termWidth), colorReset, eol)
+	}
+	return true
+}
+
+// isSeparatorLine returns true if a line consists entirely of box-drawing
+// horizontal characters (─, U+2500), indicating a Claude Code TUI separator.
+func isSeparatorLine(line string) bool {
+	if line == "" {
+		return false
+	}
+	for _, r := range line {
+		if r != '─' {
+			return false
+		}
+	}
+	return true
+}
+
+// stripTUIChrome removes Claude Code's TUI chrome (separator lines, prompt,
+// status bar) from capture-pane output. The chrome appears at the bottom of
+// the pane after the last content line, starting with a full-width ─ separator.
+func stripTUIChrome(lines []string) []string {
+	// Find the last separator line — everything from there onward is chrome.
+	cutoff := len(lines)
+	for i := len(lines) - 1; i >= 0; i-- {
+		if isSeparatorLine(strings.TrimSpace(lines[i])) {
+			cutoff = i
+		} else if cutoff < len(lines) {
+			// We've passed back through chrome into content — stop.
+			break
+		}
+	}
+	if cutoff == 0 {
+		return lines // don't strip everything
+	}
+	return lines[:cutoff]
+}
+
+// truncateLine truncates a line to fit within maxWidth columns.
+// Returns the line unchanged if maxWidth is 0 (no truncation) or the line fits.
+func truncateLine(line string, maxWidth int) string {
+	if maxWidth <= 0 {
+		return line
+	}
+	runes := []rune(line)
+	if len(runes) <= maxWidth {
+		return line
+	}
+	return string(runes[:maxWidth])
+}
+
+// trimBlankLines removes leading and trailing blank lines from a slice.
+func trimBlankLines(lines []string) []string {
+	start := 0
+	for start < len(lines) && strings.TrimSpace(lines[start]) == "" {
+		start++
+	}
+	end := len(lines)
+	for end > start && strings.TrimSpace(lines[end-1]) == "" {
+		end--
+	}
+	if start >= end {
+		return nil
+	}
+	return lines[start:end]
 }
 
 func init() {

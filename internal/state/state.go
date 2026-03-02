@@ -111,8 +111,8 @@ func RemoveStationPID(repoDir, stationName string) error {
 }
 
 // KillAllStationAgents kills all running station agent processes and removes
-// their PID files. Agents run in their own process groups (Setpgid), so each
-// must be killed individually via its process group.
+// their PID and tmux state files. If a station has a .tmux file, the tmux
+// session is killed instead of relying on the process group alone.
 func KillAllStationAgents(repoDir string) {
 	dir := filepath.Join(repoDir, stateDir, stationsDir)
 	entries, err := os.ReadDir(dir)
@@ -124,6 +124,15 @@ func KillAllStationAgents(repoDir string) {
 			continue
 		}
 		name := strings.TrimSuffix(e.Name(), ".pid")
+
+		// Prefer tmux session kill if a .tmux state file exists
+		if sessionName := ReadStationTmux(repoDir, name); sessionName != "" {
+			KillTmuxSession(sessionName)
+			_ = RemoveStationTmux(repoDir, name)
+			_ = RemoveStationPID(repoDir, name)
+			continue
+		}
+
 		pid, _, _ := ReadStationPID(repoDir, name)
 		if pid > 0 && IsProcessRunning(pid) {
 			_ = KillProcessGroup(pid)
@@ -149,4 +158,32 @@ func ReadStationFailed(repoDir, stationName string) bool {
 // RemoveStationFailed removes a station's failure marker.
 func RemoveStationFailed(repoDir, stationName string) error {
 	return removeFile(stationFilePath(repoDir, stationName, ".failed"))
+}
+
+// StationLogPath returns the path to a station's tmux pipe-pane log file.
+func StationLogPath(repoDir, stationName string) string {
+	return stationFilePath(repoDir, stationName, ".log")
+}
+
+// WriteStationTmux writes the tmux session name for a running station.
+func WriteStationTmux(repoDir, stationName, sessionName string) error {
+	if err := ensureStationsDir(repoDir); err != nil {
+		return err
+	}
+	return os.WriteFile(stationFilePath(repoDir, stationName, ".tmux"), []byte(sessionName), 0o644)
+}
+
+// ReadStationTmux reads the tmux session name for a station.
+// Returns "" if no tmux state file exists.
+func ReadStationTmux(repoDir, stationName string) string {
+	data, err := os.ReadFile(stationFilePath(repoDir, stationName, ".tmux"))
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
+// RemoveStationTmux removes a station's tmux state file.
+func RemoveStationTmux(repoDir, stationName string) error {
+	return removeFile(stationFilePath(repoDir, stationName, ".tmux"))
 }

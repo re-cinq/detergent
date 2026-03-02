@@ -200,7 +200,13 @@ func gitCommit(dir, message string) string {
 
 // killBackground kills background line processes for the given directory.
 // It kills the line runner (run.pid) and the named station (stations/<name>.pid).
+// If the station was running inside tmux, the tmux session is also killed.
 func killBackground(dir, stationName string) {
+	// Kill tmux session if present
+	if sessionName := state.ReadStationTmux(dir, stationName); sessionName != "" {
+		state.KillTmuxSession(sessionName)
+		_ = state.RemoveStationTmux(dir, stationName)
+	}
 	if pid, err := state.ReadPID(dir); err == nil && pid > 0 {
 		_ = syscall.Kill(-pid, syscall.SIGKILL)
 		_ = syscall.Kill(pid, syscall.SIGKILL)
