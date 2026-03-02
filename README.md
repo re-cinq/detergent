@@ -86,7 +86,7 @@ An ordered list of Gates can be configured — each runs as a Git pre-commit hoo
 - Printed before the station list: `⏸` (grey) for an inactive line or `▶` (green) for an active line runner, followed by the config file name.
 - Per-station symbols and colour-coded states:
   - ✓ **up to date** — the only commits between the station and the watched branch HEAD are skip-marker commits (green)
-  - ● **agent running** — an agent is currently running; shows uptime duration (orange)
+  - ● **agent running** — an agent is currently running; shows uptime duration (e.g. `52s`, `5m 32s`) (orange)
   - ○ **pending** — no agent running and station has not yet processed the latest commit (yellow)
   - ✗ **failed** — station encountered an error (red)
 - `line status -f` refreshes every two seconds, flicker-free with a hidden cursor.

@@ -41,7 +41,7 @@ COMMANDS
               shows a shortref of HEAD and a dirty-directory indicator, with
               per-station symbols: ✓ up-to-date — the only commits between
               the station and the watched branch HEAD are skip-marker commits
-              (green); ● agent running (orange, with uptime duration);
+              (green); ● agent running (orange, with uptime, e.g. 52s/5m 32s);
               ○ pending (yellow); ✗ failed (red). Use -f to refresh every
               2 seconds, flicker-free with a hidden cursor. Status is
               computed on-demand, not cached.
