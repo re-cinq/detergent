@@ -223,6 +223,18 @@ func RemoveWorktree(repoDir, worktreePath string) error {
 	return err
 }
 
+// StashPush stashes uncommitted changes with a message.
+func StashPush(dir, message string) error {
+	_, err := Run(dir, "stash", "push", "-m", message)
+	return err
+}
+
+// StashPop pops the most recent stash entry.
+func StashPop(dir string) error {
+	_, err := Run(dir, "stash", "pop")
+	return err
+}
+
 // DeleteBranch force-deletes a local branch.
 func DeleteBranch(dir, name string) error {
 	_, err := Run(dir, "branch", "-D", name)

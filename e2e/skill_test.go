@@ -223,9 +223,9 @@ stations:
 		Expect(err).NotTo(HaveOccurred(), "skill file should be installed")
 
 		content := readFile(dir, filepath.Join(".claude", "skills", "line-rebase", "SKILL.md"))
-		Expect(content).To(ContainSubstring("git stash push"))
-		Expect(content).To(ContainSubstring("git rebase"))
-		Expect(content).To(ContainSubstring("git stash pop"))
+		Expect(content).To(ContainSubstring("line rebase"))
+		Expect(content).To(ContainSubstring("stash"))
+		Expect(content).To(ContainSubstring("rebase"))
 		Expect(content).To(ContainSubstring("abort"))
 		Expect(content).To(ContainSubstring("No work is ever lost"))
 	})

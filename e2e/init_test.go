@@ -100,6 +100,6 @@ var _ = Describe("line init", func() {
 		skillFile := readFile(dir, ".claude/skills/line-rebase/SKILL.md")
 		Expect(skillFile).To(ContainSubstring("/line-rebase"))
 		Expect(skillFile).To(ContainSubstring("Procedure"))
-		Expect(skillFile).To(ContainSubstring("git rebase"))
+		Expect(skillFile).To(ContainSubstring("line rebase"))
 	})
 })

@@ -122,6 +122,12 @@ The intention is that rather than expecting an agent to remember to do various c
   changes: what each station actually changed (content diffs), not commit
   history. All derived from Git on-demand with no state files.
 
+### `line rebase`
+
+- **REB-1**: Deterministic stash → rebase → unstash onto the terminal station branch.
+- **REB-2**: On rebase conflict: abort, restore stash, report failure. Never auto-resolve.
+- **REB-3**: Reports list of changed files after successful rebase.
+
 ### `line schema`
 
 - **SCH-1**: Outputs the YAML configuration schema, with the intention of teaching coding agents how to write config.

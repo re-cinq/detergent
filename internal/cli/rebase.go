@@ -1,0 +1,54 @@
+package cli
+
+import (
+	"fmt"
+	"strings"
+
+	"github.com/re-cinq/assembly-line/internal/config"
+	"github.com/re-cinq/assembly-line/internal/git"
+	"github.com/re-cinq/assembly-line/internal/rebase"
+	"github.com/spf13/cobra"
+)
+
+var rebaseCmd = &cobra.Command{
+	Use:   "rebase",
+	Short: "Rebase onto the terminal station branch to pick up line changes",
+	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := config.Load(configPath)
+		if err != nil {
+			return err
+		}
+
+		r := rebase.Run(".", cfg)
+
+		if r.Error != nil {
+			return r.Error
+		}
+		if r.NothingToDo {
+			fmt.Println("Nothing to rebase — already up to date.")
+			return nil
+		}
+		if r.Conflict {
+			fmt.Println("Rebase aborted due to conflicts. Working state preserved.")
+			return fmt.Errorf("rebase conflict")
+		}
+		if r.StashConflict {
+			fmt.Println("Stash pop failed after rebase — your WIP may need manual resolution.")
+			return fmt.Errorf("stash pop conflict")
+		}
+
+		terminal := cfg.Stations[len(cfg.Stations)-1]
+		terminalBranch := git.StationBranchName(terminal.Name)
+		fmt.Printf("Rebased onto %s.", terminalBranch)
+		if len(r.ChangedFiles) > 0 {
+			fmt.Printf(" Changed files: %s", strings.Join(r.ChangedFiles, ", "))
+		}
+		fmt.Println()
+
+		return nil
+	},
+}
+
+func init() {
+	rootCmd.AddCommand(rebaseCmd)
+}
