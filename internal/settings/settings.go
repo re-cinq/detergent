@@ -8,6 +8,16 @@ import (
 	"strings"
 )
 
+// ensureAndReadSettings creates the .claude directory if needed, then reads
+// and returns the current settings map, path, and any error.
+func ensureAndReadSettings(repoDir string) (map[string]any, string, error) {
+	settingsDir := filepath.Join(repoDir, ".claude")
+	if err := os.MkdirAll(settingsDir, 0o755); err != nil {
+		return nil, "", fmt.Errorf("creating .claude dir: %w", err)
+	}
+	return readSettings(repoDir)
+}
+
 // writeSettings marshals settings to JSON and writes it to settingsPath.
 func writeSettings(settingsPath string, settings map[string]any) error {
 	out, err := json.MarshalIndent(settings, "", "  ")
@@ -129,12 +139,7 @@ func removeHookEntries(repoDir string, events []string, filter func([]any) []any
 // ConfigureAutoRebaseHook adds auto-rebase hooks to .claude/settings.json
 // for PostToolUse and Stop events.
 func ConfigureAutoRebaseHook(repoDir string) error {
-	settingsDir := filepath.Join(repoDir, ".claude")
-	if err := os.MkdirAll(settingsDir, 0o755); err != nil {
-		return fmt.Errorf("creating .claude dir: %w", err)
-	}
-
-	settings, settingsPath, err := readSettings(repoDir)
+	settings, settingsPath, err := ensureAndReadSettings(repoDir)
 	if err != nil {
 		return err
 	}
@@ -177,12 +182,7 @@ func RemoveAutoRebaseHook(repoDir string) error {
 // touches a done marker file when the agent's turn ends. This lets the
 // runner detect completion without parsing TUI output.
 func ConfigureAgentDoneHook(dir, markerFile string) error {
-	settingsDir := filepath.Join(dir, ".claude")
-	if err := os.MkdirAll(settingsDir, 0o755); err != nil {
-		return fmt.Errorf("creating .claude dir: %w", err)
-	}
-
-	settings, settingsPath, err := readSettings(dir)
+	settings, settingsPath, err := ensureAndReadSettings(dir)
 	if err != nil {
 		return err
 	}
@@ -223,12 +223,7 @@ func RemoveAgentDoneHooks(repoDir string) error {
 
 // ConfigureStatusline sets the Claude Code statusline to use line statusline.
 func ConfigureStatusline(repoDir string) error {
-	settingsDir := filepath.Join(repoDir, ".claude")
-	if err := os.MkdirAll(settingsDir, 0o755); err != nil {
-		return fmt.Errorf("creating .claude dir: %w", err)
-	}
-
-	settings, settingsPath, err := readSettings(repoDir)
+	settings, settingsPath, err := ensureAndReadSettings(repoDir)
 	if err != nil {
 		return err
 	}
