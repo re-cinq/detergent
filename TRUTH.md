@@ -135,7 +135,7 @@ The intention is that rather than expecting an agent to remember to do various c
 
 - **HOOK-1**: PostToolUse and Stop hook. When `auto_rebase: true` and terminal station has unpicked commits, performs deterministic rebase and reports changed files to Claude via `decision: block`.
 - **HOOK-2**: Dedup via `.line/rebase-prompted` marker — does not re-attempt for the same terminal ref.
-- **HOOK-3**: Exits silently when: no config, `auto_rebase: false`, no stations, no unpicked commits, or already attempted for current ref.
+- **HOOK-3**: Exits silently when: no config, `auto_rebase: false`, no stations, no unpicked commits, already attempted for current ref, or a line run is in progress.
 - **HOOK-4**: `line clear` removes the rebase-prompted marker.
 
 ### `line schema`

@@ -30,6 +30,13 @@ var autoRebaseHookCmd = &cobra.Command{
 			return nil
 		}
 
+		// Don't rebase while a line run is in progress — the git rebase
+		// would trigger the post-commit hook, starting a new run that
+		// kills the in-progress agents.
+		if pid, _ := state.ReadPID("."); pid > 0 && state.IsProcessRunning(pid) {
+			return nil
+		}
+
 		terminal := cfg.Stations[len(cfg.Stations)-1]
 		terminalBranch := git.StationBranchName(terminal.Name)
 

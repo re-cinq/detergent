@@ -2,6 +2,8 @@ package e2e_test
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
 
 	lineGit "github.com/re-cinq/assembly-line/internal/git"
 	. "github.com/onsi/ginkgo/v2"
@@ -121,6 +123,17 @@ stations:
 		Expect(json.Unmarshal([]byte(out2), &result)).To(Succeed())
 		Expect(result["decision"]).To(Equal("block"))
 		Expect(result["reason"]).To(ContainSubstring("extra.txt"))
+	})
+
+	It("exits silently when a line run is in progress [HOOK-3]", func() {
+		writeAutoRebaseConfig(dir, true)
+		setupStationBranches(dir)
+
+		// Simulate an active runner by writing a PID file with our own PID.
+		writeFile(dir, ".line/run.pid", fmt.Sprintf("%d", os.Getpid()))
+
+		out := lineOK(dir, "auto-rebase-hook")
+		Expect(out).To(BeEmpty())
 	})
 
 	It("exits silently when no config exists [HOOK-3]", func() {
