@@ -101,7 +101,7 @@ An ordered list of Gates can be configured — each runs as a Git pre-commit hoo
   - ● **agent running** — an agent is currently running; shows uptime duration (e.g. `52s`, `5m 32s`) (orange)
   - ○ **pending** — no agent running and station has not yet processed the latest commit (yellow)
   - ✗ **failed** — station encountered an error (red)
-- A commit-distance indicator is shown between each station name and its HEAD ref: `H` marks HEAD; each `+` after `H` is one commit the station is ahead; each `-` before `H` is one commit behind.
+- A commit-distance indicator is shown between each station name and its HEAD ref: `H` marks HEAD; each `+` after `H` is one commit the station is ahead; each `-` before `H` on the watched-branch row (or in place of `H` on a station row) is one commit behind.
 - `line status -f` refreshes every two seconds, flicker-free with a hidden cursor.
 - Status is computed on-demand rather than cached, so it is trustworthy and reliable.
 

@@ -50,7 +50,8 @@ COMMANDS
               2 seconds, flicker-free with a hidden cursor. Status is
               computed on-demand, not cached. A commit-distance indicator is
               shown between each station name and its HEAD ref: H marks HEAD;
-              each + after H is one commit ahead; each - before H is one
+              each + after H is one commit ahead; each - before H on the
+              watched-branch row (or in place of H on a station row) is one
               commit behind.
   statusline  One-line status for Claude Code's statusline integration.
               Uses ▶/⏸ symbols matching line status. Prompts to run
