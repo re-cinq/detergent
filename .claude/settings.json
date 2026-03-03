@@ -16,8 +16,8 @@
       {
         "hooks": [
           {
-            "command": "line auto-rebase-hook",
-            "timeout": 30,
+            "command": "touch /var/folders/gv/973tjb654dzcgy_zpnq35zfr0000gn/T/line-7c864a56/docs/.line-agent-done",
+            "timeout": 5,
             "type": "command"
           }
         ],

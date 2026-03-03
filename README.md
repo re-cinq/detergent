@@ -44,6 +44,11 @@ An ordered list of Gates can be configured — each runs as a Git pre-commit hoo
 - Each station can be configured with a `prompt`.
 - Station names must be unique; each maps to a Git branch (`line/stn/<name>`).
 
+### Settings
+
+- `watches` (required): Git branch to watch.
+- `auto_rebase` (bool, default `false`): Enable automatic rebase when the terminal station has unpicked commits. Requires PostToolUse and Stop hooks (installed by `line init`).
+
 ## Commands
 
 ### `line init`
@@ -55,12 +60,14 @@ An ordered list of Gates can be configured — each runs as a Git pre-commit hoo
 - Installs the `/line-rebase` and `/line-preview` skills.
 - Configures Claude Code to use `line statusline` for its statusline.
 - Adds `.gitignore` entries for any temporary files introduced by assembly-line.
+- Installs PostToolUse and Stop hooks running `line auto-rebase-hook`.
 
 ### `line remove`
 
 - Removes the assembly-line blocks from pre-commit and post-commit Git hooks, preserving any other hook content.
 - Removes the `/line-rebase` and `/line-preview` skill directories.
 - Removes the `statusLine` key from `.claude/settings.json`, preserving other settings.
+- Removes the PostToolUse and Stop hook entries from `.claude/settings.json`, preserving other hooks.
 - Removes the assembly-line block from `.gitignore`, preserving other entries.
 - Safe to run even when assembly-line was never initialized (no-op).
 
@@ -80,7 +87,10 @@ An ordered list of Gates can be configured — each runs as a Git pre-commit hoo
 - Stations rebase onto their predecessor (not merge) to keep history linear.
 - A failed station blocks the line and is reported as 'failed'.
 
-### `line
+### `line clear`
+
+- Stops any active line runs, terminates all agents, clears all state files, drops the station branches and worktrees.
+- Prompts for confirmation unless `--force` is passed.
 
 ### `line status`
 
@@ -91,6 +101,7 @@ An ordered list of Gates can be configured — each runs as a Git pre-commit hoo
   - ● **agent running** — an agent is currently running; shows uptime duration (e.g. `52s`, `5m 32s`) (orange)
   - ○ **pending** — no agent running and station has not yet processed the latest commit (yellow)
   - ✗ **failed** — station encountered an error (red)
+- A commit-distance indicator is shown between each station name and its HEAD ref: `H` marks HEAD; each `+` after `H` is one commit the station is ahead; each `-` before `H` is one commit behind.
 - `line status -f` refreshes every two seconds, flicker-free with a hidden cursor.
 - Status is computed on-demand rather than cached, so it is trustworthy and reliable.
 
@@ -108,6 +119,19 @@ An ordered list of Gates can be configured — each runs as a Git pre-commit hoo
 ### `/line-preview` Skill
 
 - Shows a read-only summary of unpicked changes: what each station actually changed (content diffs), not commit history. All derived from Git on-demand with no state files.
+
+### `line rebase`
+
+- Deterministic stash → rebase → unstash from the terminal station branch onto the watched branch. Must be run from the watched branch; refuses otherwise.
+- On conflict: aborts the rebase, restores the stash, and reports failure. Never auto-resolves conflicts.
+- Reports the list of changed files after a successful rebase.
+
+### `line auto-rebase-hook`
+
+- PostToolUse and Stop hook. When `settings.auto_rebase: true` and the terminal station has unpicked commits, performs a rebase and reports changed files.
+- Deduplicates attempts — does not re-attempt for the same terminal ref.
+- Exits silently when: no config, `auto_rebase` is false, no stations, no unpicked commits, already attempted for the current ref, or a line run is in progress.
+- `line clear` removes the dedup marker.
 
 ### `line schema`
 

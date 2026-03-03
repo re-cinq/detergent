@@ -19,22 +19,26 @@ PURPOSE
 
 COMMANDS
   init        Install Git hooks (pre-commit for gates, post-commit for run),
-              the /line-rebase and /line-preview skills, and configure
-              Claude Code's statusline.
+              the /line-rebase and /line-preview skills, configure Claude
+              Code's statusline, and install PostToolUse and Stop hooks
+              running line auto-rebase-hook.
               Adds .gitignore entries for temporary files introduced by line.
               Preserves any existing pre-commit hooks. Safe to re-run —
               converges state.
   remove      Undo everything that init installs, creates, or configures.
               Removes assembly-line blocks from pre-commit and post-commit
               hooks (preserving other content), removes the /line-rebase and
-              /line-preview skill directories, removes the statusLine key
-              from .claude/settings.json, and removes the assembly-line block
-              from .gitignore. Safe to run even when line was never initialized
-              (no-op).
+              /line-preview skill directories, removes the statusLine key and
+              PostToolUse/Stop hook entries from .claude/settings.json, and
+              removes the assembly-line block from .gitignore. Safe to run
+              even when line was never initialized (no-op).
   run         Execute the station pipeline (called by the post-commit hook).
               Stations run in sequence, each in an ephemeral Git worktree.
   gate        Run all gates (called by the pre-commit hook). Non-zero exit
               from any gate blocks the commit.
+  clear       Stop any active line run, terminate all agents, clear all state
+              files, and drop station branches and worktrees. Prompts for
+              confirmation unless --force is passed.
   status      Show station status. Header: ⏸ (grey) for inactive or ▶ (green)
               for active, followed by the config file name. Output includes
               headings. Stations listed starting with the watched branch; each
@@ -44,11 +48,23 @@ COMMANDS
               (green); ● agent running (orange, with uptime, e.g. 52s/5m 32s);
               ○ pending (yellow); ✗ failed (red). Use -f to refresh every
               2 seconds, flicker-free with a hidden cursor. Status is
-              computed on-demand, not cached.
+              computed on-demand, not cached. A commit-distance indicator is
+              shown between each station name and its HEAD ref: H marks HEAD;
+              each + after H is one commit ahead; each - before H is one
+              commit behind.
   statusline  One-line status for Claude Code's statusline integration.
               Uses ▶/⏸ symbols matching line status. Prompts to run
               /line-rebase when terminal station has unmerged commits.
               No external dependencies.
+  rebase      Deterministic stash → rebase → unstash from the terminal station
+              branch onto the watched branch. Must be run from the watched
+              branch. On conflict: aborts, restores stash, reports failure.
+              Reports changed files on success.
+  auto-rebase-hook
+              PostToolUse and Stop hook. When auto_rebase is true and the
+              terminal station has unpicked commits, performs a rebase and
+              reports changed files. Exits silently when already attempted
+              for the current ref or a line run is in progress.
   schema      Output the YAML configuration schema to stdout.
   validate    Validate line.yaml and print specific errors, or "valid".
   explain     Print this reference (what you are reading now).
@@ -74,6 +90,7 @@ CONFIG FORMAT (line.yaml)
 
   settings:
     watches: main                                # Git branch to watch (required)
+    auto_rebase: false                           # enable auto-rebase hook (optional)
 
   gates:
     - name: lint                                 # gate name (required)
