@@ -8,9 +8,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/re-cinq/assembly-line/internal/settings"
 	"github.com/re-cinq/assembly-line/internal/state"
 	"github.com/re-cinq/assembly-line/internal/tmux"
 )
+
+const agentDoneMarker = ".line-agent-done"
 
 const preamble = "IMPORTANT: Do NOT commit any changes. Do NOT run git commit. Make file changes only. The system will handle committing."
 
@@ -22,6 +25,7 @@ type agentProcess struct {
 	logPath      string    // path to pipe-pane log file
 	stationName  string
 	repoDir      string
+	worktreeDir  string    // worktree path (for done marker detection)
 	isClaudeCode bool      // true when the agent command is Claude Code
 }
 
@@ -83,6 +87,14 @@ func startAgentTmux(dir, command string, args []string, prompt, stationName, rep
 	// Kill any stale session with that name
 	_ = tmux.KillSession(sessionName)
 
+	// For Claude Code: install a Stop hook that touches a done marker so
+	// the runner can detect completion without parsing TUI output.
+	if claudeMode {
+		if err := settings.ConfigureAgentDoneHook(dir, agentDoneMarker); err != nil {
+			return nil, fmt.Errorf("installing agent done hook: %w", err)
+		}
+	}
+
 	// Build the full command line for the shell.
 	fullPrompt := preamble + "\n\n" + prompt
 	var fullArgs []string
@@ -139,6 +151,7 @@ func startAgentTmux(dir, command string, args []string, prompt, stationName, rep
 		logPath:      logPath,
 		stationName:  stationName,
 		repoDir:      repoDir,
+		worktreeDir:  dir,
 		isClaudeCode: claudeMode,
 	}, nil
 }
@@ -152,14 +165,12 @@ func (a *agentProcess) wait() error {
 }
 
 // waitTmux polls the tmux pane until the process exits.
-// For Claude Code (interactive mode, no -p): detects the idle "❯" prompt
-// and sends /exit to cleanly shut down. For other commands: waits for
+// For Claude Code: a Stop hook writes a done marker when the agent's turn
+// ends; we detect that and send /exit. For other commands: waits for
 // natural pane death.
 func (a *agentProcess) waitTmux() error {
 	exitSent := false
-	// Grace period: don't check for idle prompt until Claude Code has had
-	// time to start processing (avoids matching the initial prompt display).
-	idleCheckAfter := time.Now().Add(15 * time.Second)
+	donePath := filepath.Join(a.worktreeDir, agentDoneMarker)
 	for {
 		dead, exitCode, err := tmux.PaneStatus(a.tmuxSession)
 		if err != nil {
@@ -174,42 +185,20 @@ func (a *agentProcess) waitTmux() error {
 			return nil
 		}
 
-		// For Claude Code: detect the idle ❯ prompt and send /exit.
-		if a.isClaudeCode && !exitSent && time.Now().After(idleCheckAfter) {
-			if captured, err := tmux.CapturePaneLines(a.tmuxSession, 10); err == nil {
-				if isIdlePrompt(captured) {
-					// Claude Code's TUI intercepts "/" and shows an autocomplete
-					// picker. The first Enter selects "/exit" from the menu;
-					// a second Enter after a brief pause executes the command.
-					_ = tmux.SendKeys(a.tmuxSession, "/exit")
-					time.Sleep(500 * time.Millisecond)
-					_ = tmux.SendKeys(a.tmuxSession, "")
-					exitSent = true
-				}
+		// For Claude Code: the Stop hook touches a done marker when the
+		// agent's turn ends. Send /exit to cleanly shut down.
+		if a.isClaudeCode && !exitSent {
+			if _, err := os.Stat(donePath); err == nil {
+				_ = os.Remove(donePath)
+				_ = tmux.SendKeys(a.tmuxSession, "/exit")
+				time.Sleep(500 * time.Millisecond)
+				_ = tmux.SendKeys(a.tmuxSession, "")
+				exitSent = true
 			}
 		}
 
 		time.Sleep(500 * time.Millisecond)
 	}
-}
-
-// isIdlePrompt checks if capture-pane output indicates Claude Code is idle
-// at its input prompt (❯) and not actively processing.
-//
-// Claude Code's TUI has a status bar at the bottom of the pane (with info like
-// permissions mode, active tools, etc.), so the bare ❯ prompt line is NOT the
-// last non-empty line. We scan all captured lines for a bare ❯.
-func isIdlePrompt(captured string) bool {
-	for _, line := range strings.Split(captured, "\n") {
-		line = strings.TrimSpace(line)
-		// Claude Code shows "❯" alone when idle at the input prompt.
-		// When displaying the initial prompt, it shows "❯ <prompt text>".
-		// We only match the bare prompt with no text following it.
-		if line == "❯" {
-			return true
-		}
-	}
-	return false
 }
 
 // pid returns the process ID of the agent.

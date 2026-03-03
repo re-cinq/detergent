@@ -198,6 +198,41 @@ func RemoveAutoRebaseHook(repoDir string) error {
 	return writeSettings(settingsPath, settings)
 }
 
+// ConfigureAgentDoneHook installs a Stop hook in the given directory that
+// touches a done marker file when the agent's turn ends. This lets the
+// runner detect completion without parsing TUI output.
+func ConfigureAgentDoneHook(dir, markerFile string) error {
+	settingsDir := filepath.Join(dir, ".claude")
+	if err := os.MkdirAll(settingsDir, 0o755); err != nil {
+		return fmt.Errorf("creating .claude dir: %w", err)
+	}
+
+	settings, settingsPath, err := readSettings(dir)
+	if err != nil {
+		return err
+	}
+
+	markerPath := filepath.Join(dir, markerFile)
+	hook := map[string]any{
+		"type":    "command",
+		"command": "touch " + markerPath,
+		"timeout": 5,
+	}
+	entry := map[string]any{
+		"matcher": "",
+		"hooks":   []any{hook},
+	}
+
+	hooksMap, _ := settings["hooks"].(map[string]any)
+	if hooksMap == nil {
+		hooksMap = make(map[string]any)
+	}
+	hooksMap["Stop"] = []any{entry}
+	settings["hooks"] = hooksMap
+
+	return writeSettings(settingsPath, settings)
+}
+
 // ConfigureStatusline sets the Claude Code statusline to use line statusline.
 func ConfigureStatusline(repoDir string) error {
 	settingsDir := filepath.Join(repoDir, ".claude")
