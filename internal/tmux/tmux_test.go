@@ -89,24 +89,6 @@ func TestSessionLifecycle(t *testing.T) {
 	}
 }
 
-func TestSetOption(t *testing.T) {
-	skipIfNoTmux(t)
-
-	session := "line-test-setopt"
-	_ = tmux.KillSession(session)
-
-	err := tmux.NewSession(session, os.TempDir(), "sleep 60")
-	if err != nil {
-		t.Fatalf("NewSession failed: %v", err)
-	}
-	defer tmux.KillSession(session)
-
-	// Setting remain-on-exit should not error
-	if err := tmux.SetOption(session, "remain-on-exit", "on"); err != nil {
-		t.Fatalf("SetOption failed: %v", err)
-	}
-}
-
 func TestPanePID(t *testing.T) {
 	skipIfNoTmux(t)
 

@@ -60,11 +60,6 @@ func NewSession(name, dir, shellCmd string) error {
 		";", "set-option", "-t", name, "remain-on-exit", "on")
 }
 
-// SetOption sets a tmux option on a session.
-func SetOption(session, key, value string) error {
-	return run("set-option", "-t", session, key, value)
-}
-
 // HasSession returns true if the named tmux session exists.
 func HasSession(name string) bool {
 	err := run("has-session", "-t", "="+name)
