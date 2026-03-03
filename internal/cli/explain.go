@@ -63,8 +63,11 @@ COMMANDS
   auto-rebase-hook
               PostToolUse and Stop hook. When auto_rebase is true and the
               terminal station has unpicked commits, performs a rebase and
-              reports changed files. Exits silently when already attempted
-              for the current ref or a line run is in progress.
+              reports changed files. Deduplicates attempts — does not
+              re-attempt for the same terminal ref. Exits silently when:
+              no config, auto_rebase is false, no stations, no unpicked
+              commits, already attempted for the current ref, or a line
+              run is in progress. line clear removes the dedup marker.
   schema      Output the YAML configuration schema to stdout.
   validate    Validate line.yaml and print specific errors, or "valid".
   explain     Print this reference (what you are reading now).
