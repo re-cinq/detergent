@@ -58,26 +58,8 @@ var autoRebaseHookEvents = []string{"PostToolUse", "Stop"}
 
 const autoRebaseCommand = "line auto-rebase-hook"
 
-// hasAutoRebaseEntry returns true if the hook array already contains our entry.
-func hasAutoRebaseEntry(entries []any) bool {
-	for _, existing := range entries {
-		if e, ok := existing.(map[string]any); ok {
-			if hooks, ok := e["hooks"].([]any); ok {
-				for _, h := range hooks {
-					if hm, ok := h.(map[string]any); ok {
-						if cmd, _ := hm["command"].(string); cmd == autoRebaseCommand {
-							return true
-						}
-					}
-				}
-			}
-		}
-	}
-	return false
-}
-
-// filterAutoRebaseEntry removes our entry from a hook array, returning the filtered slice.
-func filterAutoRebaseEntry(entries []any) []any {
+// filterHookEntries returns entries where no hook command satisfies shouldRemove.
+func filterHookEntries(entries []any, shouldRemove func(cmd string) bool) []any {
 	var filtered []any
 	for _, existing := range entries {
 		keep := true
@@ -85,7 +67,7 @@ func filterAutoRebaseEntry(entries []any) []any {
 			if hooks, ok := e["hooks"].([]any); ok {
 				for _, h := range hooks {
 					if hm, ok := h.(map[string]any); ok {
-						if cmd, _ := hm["command"].(string); cmd == autoRebaseCommand {
+						if cmd, _ := hm["command"].(string); shouldRemove(cmd) {
 							keep = false
 						}
 					}
@@ -97,6 +79,51 @@ func filterAutoRebaseEntry(entries []any) []any {
 		}
 	}
 	return filtered
+}
+
+// filterAutoRebaseEntry removes our entry from a hook array, returning the filtered slice.
+func filterAutoRebaseEntry(entries []any) []any {
+	return filterHookEntries(entries, func(cmd string) bool { return cmd == autoRebaseCommand })
+}
+
+// hasAutoRebaseEntry returns true if the hook array already contains our entry.
+func hasAutoRebaseEntry(entries []any) bool {
+	return len(filterAutoRebaseEntry(entries)) < len(entries)
+}
+
+// removeHookEntries filters hook entries from the given events in settings.json.
+func removeHookEntries(repoDir string, events []string, filter func([]any) []any) error {
+	settings, settingsPath, err := readSettings(repoDir)
+	if err != nil {
+		return err
+	}
+	hooksMap, ok := settings["hooks"].(map[string]any)
+	if !ok {
+		return nil
+	}
+	changed := false
+	for _, event := range events {
+		eventHooks, _ := hooksMap[event].([]any)
+		filtered := filter(eventHooks)
+		if len(filtered) == len(eventHooks) {
+			continue
+		}
+		changed = true
+		if len(filtered) == 0 {
+			delete(hooksMap, event)
+		} else {
+			hooksMap[event] = filtered
+		}
+	}
+	if !changed {
+		return nil
+	}
+	if len(hooksMap) == 0 {
+		delete(settings, "hooks")
+	} else {
+		settings["hooks"] = hooksMap
+	}
+	return writeSettings(settingsPath, settings)
 }
 
 // ConfigureAutoRebaseHook adds auto-rebase hooks to .claude/settings.json
@@ -143,45 +170,7 @@ func ConfigureAutoRebaseHook(repoDir string) error {
 // RemoveAutoRebaseHook removes the assembly-line auto-rebase hook entries
 // from .claude/settings.json, preserving other hooks.
 func RemoveAutoRebaseHook(repoDir string) error {
-	settings, settingsPath, err := readSettings(repoDir)
-	if err != nil {
-		return err
-	}
-
-	hooksMap, ok := settings["hooks"].(map[string]any)
-	if !ok {
-		return nil
-	}
-
-	changed := false
-	for _, event := range autoRebaseHookEvents {
-		eventHooks, ok := hooksMap[event].([]any)
-		if !ok {
-			continue
-		}
-		filtered := filterAutoRebaseEntry(eventHooks)
-		if len(filtered) == len(eventHooks) {
-			continue
-		}
-		changed = true
-		if len(filtered) == 0 {
-			delete(hooksMap, event)
-		} else {
-			hooksMap[event] = filtered
-		}
-	}
-
-	if !changed {
-		return nil
-	}
-
-	if len(hooksMap) == 0 {
-		delete(settings, "hooks")
-	} else {
-		settings["hooks"] = hooksMap
-	}
-
-	return writeSettings(settingsPath, settings)
+	return removeHookEntries(repoDir, autoRebaseHookEvents, filterAutoRebaseEntry)
 }
 
 // ConfigureAgentDoneHook installs a Stop hook in the given directory that
@@ -224,57 +213,12 @@ func ConfigureAgentDoneHook(dir, markerFile string) error {
 // worktree settings back to the main repo, so the done marker touch
 // command can leak to the main repo's settings after a line run.
 func RemoveAgentDoneHooks(repoDir string) error {
-	settings, settingsPath, err := readSettings(repoDir)
-	if err != nil {
-		return err
+	filter := func(entries []any) []any {
+		return filterHookEntries(entries, func(cmd string) bool {
+			return strings.Contains(cmd, ".line-agent-done")
+		})
 	}
-
-	hooksMap, ok := settings["hooks"].(map[string]any)
-	if !ok {
-		return nil
-	}
-
-	stopHooks, ok := hooksMap["Stop"].([]any)
-	if !ok {
-		return nil
-	}
-
-	var filtered []any
-	for _, existing := range stopHooks {
-		keep := true
-		if e, ok := existing.(map[string]any); ok {
-			if hooks, ok := e["hooks"].([]any); ok {
-				for _, h := range hooks {
-					if hm, ok := h.(map[string]any); ok {
-						if cmd, _ := hm["command"].(string); strings.Contains(cmd, ".line-agent-done") {
-							keep = false
-						}
-					}
-				}
-			}
-		}
-		if keep {
-			filtered = append(filtered, existing)
-		}
-	}
-
-	if len(filtered) == len(stopHooks) {
-		return nil
-	}
-
-	if len(filtered) == 0 {
-		delete(hooksMap, "Stop")
-	} else {
-		hooksMap["Stop"] = filtered
-	}
-
-	if len(hooksMap) == 0 {
-		delete(settings, "hooks")
-	} else {
-		settings["hooks"] = hooksMap
-	}
-
-	return writeSettings(settingsPath, settings)
+	return removeHookEntries(repoDir, []string{"Stop"}, filter)
 }
 
 // ConfigureStatusline sets the Claude Code statusline to use line statusline.

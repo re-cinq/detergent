@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/re-cinq/assembly-line/internal/git"
 	"github.com/re-cinq/assembly-line/internal/settings"
 	"github.com/re-cinq/assembly-line/internal/state"
 	"github.com/re-cinq/assembly-line/internal/tmux"
@@ -60,7 +61,7 @@ func startAgentDirect(dir, command string, args []string, prompt string) (*agent
 	// Build a clean environment for the agent:
 	// - Remove CLAUDECODE so Claude Code can launch as a fresh session
 	// - Set LINE_RUNNING=1 to prevent retriggering
-	env := cleanEnv(os.Environ(), "CLAUDECODE")
+	env := git.CleanEnv(os.Environ(), "CLAUDECODE")
 	cmd.Env = append(env, "LINE_RUNNING=1")
 
 	// Set process group so we can kill the whole group
@@ -223,20 +224,3 @@ func shellescape(s string) string {
 	return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'"
 }
 
-// cleanEnv returns a copy of environ with the named variables removed.
-func cleanEnv(environ []string, keys ...string) []string {
-	result := make([]string, 0, len(environ))
-	for _, e := range environ {
-		skip := false
-		for _, key := range keys {
-			if strings.HasPrefix(e, key+"=") {
-				skip = true
-				break
-			}
-		}
-		if !skip {
-			result = append(result, e)
-		}
-	}
-	return result
-}

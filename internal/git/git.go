@@ -10,49 +10,49 @@ import (
 	"strings"
 )
 
-// gitEnvPrefixes lists git environment variable prefixes that must be stripped
-// from child processes. When line is invoked from a git hook (e.g.
-// post-commit), git sets GIT_DIR and friends relative to the repo. If these
-// leak into worktree subprocesses, GIT_DIR=.git resolves to a *file* (not a
-// directory) inside the worktree, causing "index file open failed: Not a
-// directory".
-var gitEnvPrefixes = []string{
-	"GIT_DIR=",
-	"GIT_WORK_TREE=",
-	"GIT_INDEX_FILE=",
-	"GIT_OBJECT_DIRECTORY=",
-	"GIT_ALTERNATE_OBJECT_DIRECTORIES=",
-	"GIT_COMMON_DIR=",
+// gitEnvKeys lists git environment variable names that must be stripped from
+// child processes. When line is invoked from a git hook (e.g. post-commit),
+// git sets GIT_DIR and friends relative to the repo. If these leak into
+// worktree subprocesses, GIT_DIR=.git resolves to a *file* (not a directory)
+// inside the worktree, causing "index file open failed: Not a directory".
+var gitEnvKeys = []string{
+	"GIT_DIR",
+	"GIT_WORK_TREE",
+	"GIT_INDEX_FILE",
+	"GIT_OBJECT_DIRECTORY",
+	"GIT_ALTERNATE_OBJECT_DIRECTORIES",
+	"GIT_COMMON_DIR",
+}
+
+// CleanEnv returns a copy of environ with any variables matching the given key
+// names removed. Key names should not include the "=" separator.
+func CleanEnv(environ []string, keys ...string) []string {
+	result := make([]string, 0, len(environ))
+	for _, e := range environ {
+		skip := false
+		for _, key := range keys {
+			if strings.HasPrefix(e, key+"=") {
+				skip = true
+				break
+			}
+		}
+		if !skip {
+			result = append(result, e)
+		}
+	}
+	return result
 }
 
 // Run executes a git command in the given directory.
 func Run(dir string, args ...string) (string, error) {
 	cmd := exec.Command("git", args...)
 	cmd.Dir = dir
-	cmd.Env = append(cleanGitEnv(os.Environ()), "GIT_TERMINAL_PROMPT=0")
+	cmd.Env = append(CleanEnv(os.Environ(), gitEnvKeys...), "GIT_TERMINAL_PROMPT=0")
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("git %s: %s: %w", strings.Join(args, " "), strings.TrimSpace(string(out)), err)
 	}
 	return strings.TrimSpace(string(out)), nil
-}
-
-// cleanGitEnv returns a copy of environ with hook-inherited git variables removed.
-func cleanGitEnv(environ []string) []string {
-	result := make([]string, 0, len(environ))
-	for _, e := range environ {
-		keep := true
-		for _, prefix := range gitEnvPrefixes {
-			if strings.HasPrefix(e, prefix) {
-				keep = false
-				break
-			}
-		}
-		if keep {
-			result = append(result, e)
-		}
-	}
-	return result
 }
 
 // CurrentBranch returns the current branch name.
