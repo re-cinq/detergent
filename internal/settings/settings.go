@@ -21,26 +21,14 @@ func writeSettings(settingsPath string, settings map[string]any) error {
 
 // RemoveStatusline removes the statusLine key from .claude/settings.json.
 func RemoveStatusline(repoDir string) error {
-	settingsPath := filepath.Join(repoDir, ".claude", "settings.json")
-
-	data, err := os.ReadFile(settingsPath)
+	settings, settingsPath, err := readSettings(repoDir)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("reading settings: %w", err)
+		return err
 	}
-
-	settings := make(map[string]any)
-	if err := json.Unmarshal(data, &settings); err != nil {
-		return fmt.Errorf("parsing settings: %w", err)
-	}
-
 	if _, ok := settings["statusLine"]; !ok {
 		return nil
 	}
 	delete(settings, "statusLine")
-
 	return writeSettings(settingsPath, settings)
 }
 
@@ -156,9 +144,6 @@ func ConfigureAutoRebaseHook(repoDir string) error {
 func RemoveAutoRebaseHook(repoDir string) error {
 	settings, settingsPath, err := readSettings(repoDir)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
 		return err
 	}
 
@@ -240,17 +225,9 @@ func ConfigureStatusline(repoDir string) error {
 		return fmt.Errorf("creating .claude dir: %w", err)
 	}
 
-	settingsPath := filepath.Join(settingsDir, "settings.json")
-
-	// Read existing settings if present
-	settings := make(map[string]any)
-	data, err := os.ReadFile(settingsPath)
-	if err == nil {
-		if err := json.Unmarshal(data, &settings); err != nil {
-			return fmt.Errorf("parsing existing settings: %w", err)
-		}
-	} else if !os.IsNotExist(err) {
-		return fmt.Errorf("reading settings: %w", err)
+	settings, settingsPath, err := readSettings(repoDir)
+	if err != nil {
+		return err
 	}
 
 	settings["statusLine"] = map[string]any{

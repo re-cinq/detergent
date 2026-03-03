@@ -26,9 +26,8 @@ func Available() bool {
 	return availableResult
 }
 
-// SessionName returns a deterministic tmux session name for a repo+station:
-// line-<8-char-sha256-of-repo-path>-<stationName>
-func SessionName(repoDir, stationName string) string {
+// repoTag returns an 8-char hex tag derived from the canonical repo path.
+func repoTag(repoDir string) string {
 	abs, err := filepath.Abs(repoDir)
 	if err != nil {
 		abs = repoDir
@@ -38,22 +37,18 @@ func SessionName(repoDir, stationName string) string {
 		abs = resolved
 	}
 	h := sha256.Sum256([]byte(abs))
-	tag := hex.EncodeToString(h[:])[:8]
-	return "line-" + tag + "-" + stationName
+	return hex.EncodeToString(h[:])[:8]
+}
+
+// SessionName returns a deterministic tmux session name for a repo+station:
+// line-<8-char-sha256-of-repo-path>-<stationName>
+func SessionName(repoDir, stationName string) string {
+	return "line-" + repoTag(repoDir) + "-" + stationName
 }
 
 // sessionPrefix returns the prefix shared by all sessions for a repo.
 func sessionPrefix(repoDir string) string {
-	abs, err := filepath.Abs(repoDir)
-	if err != nil {
-		abs = repoDir
-	}
-	if resolved, err := filepath.EvalSymlinks(abs); err == nil {
-		abs = resolved
-	}
-	h := sha256.Sum256([]byte(abs))
-	tag := hex.EncodeToString(h[:])[:8]
-	return "line-" + tag + "-"
+	return "line-" + repoTag(repoDir) + "-"
 }
 
 // NewSession creates a new detached tmux session running shellCmd in dir.

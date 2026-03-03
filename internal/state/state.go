@@ -41,6 +41,15 @@ func removeFile(path string) error {
 	return err
 }
 
+// readStringFile reads a file and returns its trimmed contents, or "" on error.
+func readStringFile(path string) string {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
 // WritePID writes the runner PID file.
 func WritePID(repoDir string, pid int) error {
 	if err := ensureDir(repoDir); err != nil {
@@ -79,12 +88,7 @@ func WriteRebasePrompted(repoDir, ref string) error {
 
 // ReadRebasePrompted returns the stored terminal ref, or "" if none exists.
 func ReadRebasePrompted(repoDir string) string {
-	path := filepath.Join(repoDir, stateDir, rebasePromptedFile)
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(data))
+	return readStringFile(filepath.Join(repoDir, stateDir, rebasePromptedFile))
 }
 
 // RemoveRebasePrompted removes the rebase-prompted marker.
@@ -201,11 +205,7 @@ func WriteStationTmux(repoDir, stationName, sessionName string) error {
 // ReadStationTmux reads the tmux session name for a station.
 // Returns "" if no tmux state file exists.
 func ReadStationTmux(repoDir, stationName string) string {
-	data, err := os.ReadFile(stationFilePath(repoDir, stationName, ".tmux"))
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(data))
+	return readStringFile(stationFilePath(repoDir, stationName, ".tmux"))
 }
 
 // RemoveStationTmux removes a station's tmux state file.
