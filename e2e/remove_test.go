@@ -147,6 +147,67 @@ var _ = Describe("line remove", func() {
 		Expect(settings["theme"]).To(Equal("dark"))
 	})
 
+	// RMV-6: Removes the PostToolUse hook entry from .claude/settings.json.
+	It("removes PostToolUse auto-rebase hook from settings [RMV-6]", func() {
+		lineOK(dir, "init")
+
+		// Verify hook is installed
+		data, err := os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
+		Expect(err).NotTo(HaveOccurred())
+		var before map[string]any
+		err = json.Unmarshal(data, &before)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(before).To(HaveKey("hooks"))
+
+		lineOK(dir, "remove")
+
+		// Hook should be gone
+		data, err = os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
+		Expect(err).NotTo(HaveOccurred())
+		var after map[string]any
+		err = json.Unmarshal(data, &after)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(after).NotTo(HaveKey("hooks"))
+	})
+
+	It("preserves other hooks when removing auto-rebase hook [RMV-6]", func() {
+		lineOK(dir, "init")
+
+		// Add a custom hook alongside
+		data, err := os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
+		Expect(err).NotTo(HaveOccurred())
+		var settings map[string]any
+		err = json.Unmarshal(data, &settings)
+		Expect(err).NotTo(HaveOccurred())
+
+		hooks := settings["hooks"].(map[string]any)
+		hooks["PreToolUse"] = []any{
+			map[string]any{
+				"matcher": "",
+				"hooks":   []any{map[string]any{"type": "command", "command": "echo custom"}},
+			},
+		}
+		settings["hooks"] = hooks
+		out, err := json.MarshalIndent(settings, "", "  ")
+		Expect(err).NotTo(HaveOccurred())
+		err = os.WriteFile(filepath.Join(dir, ".claude", "settings.json"), append(out, '\n'), 0o644)
+		Expect(err).NotTo(HaveOccurred())
+
+		lineOK(dir, "remove")
+
+		data, err = os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
+		Expect(err).NotTo(HaveOccurred())
+		var after map[string]any
+		err = json.Unmarshal(data, &after)
+		Expect(err).NotTo(HaveOccurred())
+
+		// hooks key should still exist with PreToolUse, but PostToolUse should be gone
+		hooksAfter, ok := after["hooks"].(map[string]any)
+		Expect(ok).To(BeTrue())
+		Expect(hooksAfter).To(HaveKey("PreToolUse"))
+		Expect(hooksAfter).NotTo(HaveKey("PostToolUse"))
+	})
+
 	// RMV-4: Removes the assembly-line block from .gitignore, preserving other entries.
 	It("removes assembly-line block from .gitignore [RMV-4]", func() {
 		lineOK(dir, "init")

@@ -8,6 +8,7 @@ The intention is that rather than expecting an agent to remember to do various c
 
 - **CFG-1**: The tool is configured with YAML. All commands assume this is `line.yaml`; if they need reference to the config they take a `-p` or `--path` command.
 - **CFG-2**: A Git branch to watch must be configured (`watches`).
+- **CFG-3**: `settings.auto_rebase` (bool, default false) enables the PostToolUse auto-rebase hook.
 
 - Example:
 
@@ -59,6 +60,7 @@ The intention is that rather than expecting an agent to remember to do various c
 - **INIT-5**: Installs the `/line-rebase` and `/line-preview` skills.
 - **INIT-6**: Configures Claude Code to use `line statusline` for its statusline.
 - **INIT-7**: Adds `.gitignore` entries for any temporary files introduced by assembly-line.
+- **INIT-8**: Installs PostToolUse and Stop hooks running `line auto-rebase-hook`.
 
 ### `line remove`
 
@@ -67,6 +69,7 @@ The intention is that rather than expecting an agent to remember to do various c
 - **RMV-3**: Removes the `statusLine` key from `.claude/settings.json`, preserving other settings.
 - **RMV-4**: Removes the assembly-line block from `.gitignore`, preserving other entries.
 - **RMV-5**: Safe to run when assembly-line was never initialized (no-op).
+- **RMV-6**: Removes the PostToolUse and Stop hook entries from `.claude/settings.json`, preserving other hooks.
 
 ### `line run`
 
@@ -116,7 +119,7 @@ The intention is that rather than expecting an agent to remember to do various c
 
 ### Skill
 
-- **SKL-1**: `/line-rebase` should, perfectly safely, stash any current work on the watched branch, rebase from the terminal branch to pick up latest changes, and unstash work in progress. It is vital that no work ever be lost, and this be fast and automatic.
+- **SKL-1**: `/line-rebase` invokes `line rebase` to pick up changes from the terminal station branch. The skill is a thin wrapper so Claude Code users can invoke it via `/line-rebase`.
 - **SKL-2**: When changes are picked onto the main branch, these commits must not trigger the line again.
 - **SKL-3**: `/line-preview` should show a read-only summary of unpicked
   changes: what each station actually changed (content diffs), not commit
@@ -124,9 +127,16 @@ The intention is that rather than expecting an agent to remember to do various c
 
 ### `line rebase`
 
-- **REB-1**: Deterministic stash → rebase → unstash onto the terminal station branch.
+- **REB-1**: Deterministic stash → rebase → unstash onto the terminal station branch. Must be on the watched branch; refuses to run otherwise.
 - **REB-2**: On rebase conflict: abort, restore stash, report failure. Never auto-resolve.
 - **REB-3**: Reports list of changed files after successful rebase.
+
+### `line auto-rebase-hook`
+
+- **HOOK-1**: PostToolUse and Stop hook. When `auto_rebase: true` and terminal station has unpicked commits, performs deterministic rebase and reports changed files to Claude via `decision: block`.
+- **HOOK-2**: Dedup via `.line/rebase-prompted` marker — does not re-attempt for the same terminal ref.
+- **HOOK-3**: Exits silently when: no config, `auto_rebase: false`, no stations, no unpicked commits, or already attempted for current ref.
+- **HOOK-4**: `line clear` removes the rebase-prompted marker.
 
 ### `line schema`
 

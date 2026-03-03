@@ -10,9 +10,10 @@ import (
 )
 
 const (
-	stateDir    = ".line"
-	pidFile     = "run.pid"
-	stationsDir = "stations"
+	stateDir            = ".line"
+	pidFile             = "run.pid"
+	rebasePromptedFile  = "rebase-prompted"
+	stationsDir         = "stations"
 )
 
 // ensureDir creates the .line directory if it doesn't exist.
@@ -65,6 +66,30 @@ func ReadPID(repoDir string) (int, error) {
 // RemovePID removes the PID file.
 func RemovePID(repoDir string) error {
 	return removeFile(filepath.Join(repoDir, stateDir, pidFile))
+}
+
+// WriteRebasePrompted records the terminal ref that was last auto-rebased.
+func WriteRebasePrompted(repoDir, ref string) error {
+	if err := ensureDir(repoDir); err != nil {
+		return err
+	}
+	path := filepath.Join(repoDir, stateDir, rebasePromptedFile)
+	return os.WriteFile(path, []byte(ref), 0o644)
+}
+
+// ReadRebasePrompted returns the stored terminal ref, or "" if none exists.
+func ReadRebasePrompted(repoDir string) string {
+	path := filepath.Join(repoDir, stateDir, rebasePromptedFile)
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
+// RemoveRebasePrompted removes the rebase-prompted marker.
+func RemoveRebasePrompted(repoDir string) error {
+	return removeFile(filepath.Join(repoDir, stateDir, rebasePromptedFile))
 }
 
 // findProcess wraps os.FindProcess for use in platform-specific code.

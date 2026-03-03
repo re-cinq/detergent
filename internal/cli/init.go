@@ -23,6 +23,9 @@ var initCmd = &cobra.Command{
 		if err := settings.ConfigureStatusline("."); err != nil {
 			return fmt.Errorf("configuring statusline: %w", err)
 		}
+		if err := settings.ConfigureAutoRebaseHook("."); err != nil {
+			return fmt.Errorf("configuring auto-rebase hook: %w", err)
+		}
 		if err := gitignore.Install("."); err != nil {
 			return fmt.Errorf("configuring gitignore: %w", err)
 		}

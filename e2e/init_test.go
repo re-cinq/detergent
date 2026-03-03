@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -91,6 +92,36 @@ var _ = Describe("line init", func() {
 		gi := readFile(dir, ".gitignore")
 		count := strings.Count(gi, "# >>> assembly-line >>>")
 		Expect(count).To(Equal(1), "expected exactly one assembly-line block in .gitignore, got %d", count)
+	})
+
+	// INIT-8: Installs PostToolUse and Stop hooks for auto-rebase
+	It("installs auto-rebase hooks for PostToolUse and Stop [INIT-8]", func() {
+		lineOK(dir, "init")
+
+		data, err := os.ReadFile(filepath.Join(dir, ".claude", "settings.json"))
+		Expect(err).NotTo(HaveOccurred())
+		var settings map[string]any
+		err = json.Unmarshal(data, &settings)
+		Expect(err).NotTo(HaveOccurred())
+
+		hooks, ok := settings["hooks"].(map[string]any)
+		Expect(ok).To(BeTrue(), "expected hooks key in settings")
+
+		for _, event := range []string{"PostToolUse", "Stop"} {
+			entries, ok := hooks[event].([]any)
+			Expect(ok).To(BeTrue(), "expected %s array in hooks", event)
+			Expect(entries).To(HaveLen(1))
+
+			entry, ok := entries[0].(map[string]any)
+			Expect(ok).To(BeTrue())
+			hooksList, ok := entry["hooks"].([]any)
+			Expect(ok).To(BeTrue())
+			Expect(hooksList).To(HaveLen(1))
+
+			hookEntry, ok := hooksList[0].(map[string]any)
+			Expect(ok).To(BeTrue())
+			Expect(hookEntry["command"]).To(Equal("line auto-rebase-hook"))
+		}
 	})
 
 	// INIT-5: Installs the /line-rebase skill

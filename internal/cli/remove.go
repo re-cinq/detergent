@@ -23,6 +23,9 @@ var removeCmd = &cobra.Command{
 		if err := settings.RemoveStatusline("."); err != nil {
 			return fmt.Errorf("removing statusline config: %w", err)
 		}
+		if err := settings.RemoveAutoRebaseHook("."); err != nil {
+			return fmt.Errorf("removing auto-rebase hook: %w", err)
+		}
 		if err := gitignore.Remove("."); err != nil {
 			return fmt.Errorf("removing gitignore entries: %w", err)
 		}

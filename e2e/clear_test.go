@@ -163,6 +163,20 @@ stations:
 			"worktree base dir %s should not exist after clear", baseDir)
 	})
 
+	// HOOK-4: clear removes the rebase-prompted marker
+	It("removes rebase-prompted marker [HOOK-4]", func() {
+		agentScript := writeMockAgent(dir)
+		writeClearConfig(dir, agentScript)
+
+		// Create a rebase-prompted marker
+		writeFile(dir, ".line/rebase-prompted", "abc123")
+		Expect(fileExists(dir, ".line/rebase-prompted")).To(BeTrue())
+
+		lineOK(dir, "clear", "--force")
+
+		Expect(fileExists(dir, ".line/rebase-prompted")).To(BeFalse())
+	})
+
 	It("is safe when line has never run [CLEAR-1]", func() {
 		agentScript := writeMockAgent(dir)
 		writeClearConfig(dir, agentScript)

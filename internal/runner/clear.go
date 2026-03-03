@@ -43,6 +43,9 @@ func Clear(dir string, cfg *config.Config) error {
 	// 7. Remove .line/run.pid
 	_ = state.RemovePID(dir)
 
+	// 8. Remove .line/rebase-prompted marker
+	_ = state.RemoveRebasePrompted(dir)
+
 	fmt.Println("assembly-line cleared")
 	return nil
 }

@@ -3,6 +3,7 @@ agent:
   args: ["--dangerously-skip-permissions", "--model", "sonnet", "-p"]
 
 settings:
+  auto_rebase: true
   watches: master
 
 gates:
