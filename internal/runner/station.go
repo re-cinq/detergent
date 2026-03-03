@@ -8,6 +8,7 @@ import (
 
 	"github.com/re-cinq/assembly-line/internal/config"
 	"github.com/re-cinq/assembly-line/internal/git"
+	"github.com/re-cinq/assembly-line/internal/settings"
 	"github.com/re-cinq/assembly-line/internal/state"
 )
 
@@ -73,6 +74,19 @@ func runStation(dir string, cfg *config.Config, station config.Station, predeces
 
 	// Wait for agent to complete
 	agentErr := agent.wait()
+
+	// Remove .claude/ from the worktree — ConfigureAgentDoneHook created
+	// settings.json there and it should not be committed to the station branch.
+	_ = os.RemoveAll(filepath.Join(wtPath, ".claude"))
+
+	// Claude Code syncs worktree settings to the main repo, so the agent
+	// done hook (touch .line-agent-done) can leak into the main repo's
+	// .claude/settings.json. Clean it up and restore auto-rebase hooks.
+	// Only if the file already exists — don't create it from scratch.
+	if _, statErr := os.Stat(filepath.Join(dir, ".claude", "settings.json")); statErr == nil {
+		_ = settings.RemoveAgentDoneHooks(dir)
+		_ = settings.ConfigureAutoRebaseHook(dir)
+	}
 
 	// Clean up station state files
 	_ = state.RemoveStationPID(dir, station.Name)

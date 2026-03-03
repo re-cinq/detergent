@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // writeSettings marshals settings to JSON and writes it to settingsPath.
@@ -214,6 +215,64 @@ func ConfigureAgentDoneHook(dir, markerFile string) error {
 	}
 	hooksMap["Stop"] = []any{entry}
 	settings["hooks"] = hooksMap
+
+	return writeSettings(settingsPath, settings)
+}
+
+// RemoveAgentDoneHooks removes any Stop hook entries installed by
+// ConfigureAgentDoneHook from .claude/settings.json. Claude Code syncs
+// worktree settings back to the main repo, so the done marker touch
+// command can leak to the main repo's settings after a line run.
+func RemoveAgentDoneHooks(repoDir string) error {
+	settings, settingsPath, err := readSettings(repoDir)
+	if err != nil {
+		return err
+	}
+
+	hooksMap, ok := settings["hooks"].(map[string]any)
+	if !ok {
+		return nil
+	}
+
+	stopHooks, ok := hooksMap["Stop"].([]any)
+	if !ok {
+		return nil
+	}
+
+	var filtered []any
+	for _, existing := range stopHooks {
+		keep := true
+		if e, ok := existing.(map[string]any); ok {
+			if hooks, ok := e["hooks"].([]any); ok {
+				for _, h := range hooks {
+					if hm, ok := h.(map[string]any); ok {
+						if cmd, _ := hm["command"].(string); strings.Contains(cmd, ".line-agent-done") {
+							keep = false
+						}
+					}
+				}
+			}
+		}
+		if keep {
+			filtered = append(filtered, existing)
+		}
+	}
+
+	if len(filtered) == len(stopHooks) {
+		return nil
+	}
+
+	if len(filtered) == 0 {
+		delete(hooksMap, "Stop")
+	} else {
+		hooksMap["Stop"] = filtered
+	}
+
+	if len(hooksMap) == 0 {
+		delete(settings, "hooks")
+	} else {
+		settings["hooks"] = hooksMap
+	}
 
 	return writeSettings(settingsPath, settings)
 }
