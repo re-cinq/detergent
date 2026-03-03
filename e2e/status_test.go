@@ -356,10 +356,10 @@ stations:
 		git(dir, "commit", "-m", "extra 2")
 
 		out := lineOK(dir, "status")
-		// Master should show --H (two dashes for two commits ahead)
-		Expect(out).To(MatchRegexp(`master\s+--H\s+[0-9a-f]`))
-		// Station should show -- (two behind)
-		Expect(out).To(MatchRegexp(`review\s+--\s+[0-9a-f]`))
+		// Master should show centered H (fixed-width indicator)
+		Expect(out).To(MatchRegexp(`master\s+H\s+[0-9a-f]`))
+		// Station should show dashes before H (behind HEAD), plus after (agent commit ahead)
+		Expect(out).To(MatchRegexp(`review\s+-H\+\s+[0-9a-f]`))
 	})
 
 	It("shows no indicator for stations without branches [STAT-10]", func() {

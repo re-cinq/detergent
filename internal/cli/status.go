@@ -147,48 +147,39 @@ func printStatus(dir string, cfg *config.Config, clearEOL bool) error {
 		ahead, behind int
 		exists        bool
 	}
-	dists := make([]stationDist, len(cfg.Stations))
-	maxBehind := 0
+	n := len(cfg.Stations)
+	dists := make([]stationDist, n)
 	if watchedFullRef != "" {
 		for i, station := range cfg.Stations {
 			branchName := git.StationBranchName(station.Name)
 			if git.BranchExists(dir, branchName) {
 				ahead, behind, err := git.RevDistance(dir, watchedFullRef, branchName)
 				if err == nil {
-					dists[i] = stationDist{ahead: ahead, behind: behind, exists: true}
-					if behind > maxBehind {
-						maxBehind = behind
+					if behind > n {
+						behind = n
 					}
+					if ahead > n {
+						ahead = n
+					}
+					dists[i] = stationDist{ahead: ahead, behind: behind, exists: true}
 				}
 			}
 		}
 	}
 
-	// Build indicator strings: master shows dashes-then-H, stations show
-	// their position relative to HEAD.
-	masterInd := strings.Repeat("-", maxBehind) + "H"
-	stnInds := make([]string, len(cfg.Stations))
+	// Build fixed-width indicator strings: column width is always 2n+1
+	// with H centered at position n. Behind = dashes before H, ahead =
+	// plusses after H.
+	indW := 2*n + 1 + 1 // indicator width + trailing space
+	masterInd := strings.Repeat(" ", n) + "H" + strings.Repeat(" ", n)
+	stnInds := make([]string, n)
 	for i, d := range dists {
-		switch {
-		case !d.exists:
-			stnInds[i] = ""
-		case d.behind > 0:
-			stnInds[i] = strings.Repeat("-", d.behind)
-		case d.ahead > 0:
-			stnInds[i] = "H" + strings.Repeat("+", d.ahead)
-		default:
-			stnInds[i] = "H"
+		if !d.exists {
+			stnInds[i] = strings.Repeat(" ", 2*n+1)
+		} else {
+			stnInds[i] = strings.Repeat(" ", n-d.behind) + strings.Repeat("-", d.behind) + "H" + strings.Repeat("+", d.ahead) + strings.Repeat(" ", n-d.ahead)
 		}
 	}
-
-	// Indicator column width = longest indicator + 1 space padding.
-	indW := len(masterInd)
-	for _, s := range stnInds {
-		if len(s) > indW {
-			indW = len(s)
-		}
-	}
-	indW++ // trailing space
 
 	// STAT-3: Line runner indicator at the top
 	pid, _ := state.ReadPID(dir)
