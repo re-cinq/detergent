@@ -52,49 +52,16 @@ func Remove(repoDir string) error {
 
 func removeHook(hooksDir, name string) error {
 	path := filepath.Join(hooksDir, name)
-
-	existing, err := os.ReadFile(path)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("reading %s hook: %w", name, err)
-	}
-
-	result, found, err := markers.Remove(string(existing))
-	if err != nil {
+	if err := markers.RemoveFromFile(path, shebang+"\n", 0o755); err != nil {
 		return fmt.Errorf("%s hook: %w", name, err)
-	}
-	if !found {
-		return nil
-	}
-
-	if result == "" {
-		result = shebang + "\n"
-	}
-
-	if err := os.WriteFile(path, []byte(result), 0o755); err != nil {
-		return fmt.Errorf("writing %s hook: %w", name, err)
 	}
 	return nil
 }
 
 func installHook(hooksDir, name, block string) error {
 	path := filepath.Join(hooksDir, name)
-
-	existing, err := os.ReadFile(path)
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("reading %s hook: %w", name, err)
-	}
-
-	content, err := markers.Insert(string(existing), block, shebang)
-	if err != nil {
+	if err := markers.InsertInFile(path, block, shebang, 0o755); err != nil {
 		return fmt.Errorf("%s hook: %w", name, err)
 	}
-
-	if err := os.WriteFile(path, []byte(content), 0o755); err != nil {
-		return fmt.Errorf("writing %s hook: %w", name, err)
-	}
-
 	return nil
 }

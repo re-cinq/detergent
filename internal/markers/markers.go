@@ -2,6 +2,7 @@ package markers
 
 import (
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -64,4 +65,43 @@ func Insert(content, block, prefix string) (string, error) {
 		content += "\n"
 	}
 	return content + "\n" + block + "\n", nil
+}
+
+// InsertInFile reads path, inserts or replaces the marker block, and writes
+// back. A missing file is treated as empty. prefix is passed to Insert as the
+// file header (e.g. a shebang line). perm is used when writing the file.
+func InsertInFile(path, block, prefix string, perm os.FileMode) error {
+	existing, err := os.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	content, err := Insert(string(existing), block, prefix)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(content), perm)
+}
+
+// RemoveFromFile reads path, removes the marker block, and writes back.
+// If fallback is non-empty and the result would be empty, fallback is written
+// instead. Returns nil if the file does not exist or has no marker block.
+func RemoveFromFile(path, fallback string, perm os.FileMode) error {
+	existing, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	result, found, err := Remove(string(existing))
+	if err != nil {
+		return err
+	}
+	if !found {
+		return nil
+	}
+	if result == "" {
+		result = fallback
+	}
+	return os.WriteFile(path, []byte(result), perm)
 }
