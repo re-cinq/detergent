@@ -55,7 +55,7 @@ COMMANDS
               commit behind.
   statusline  One-line status for Claude Code's statusline integration.
               Uses ▶/⏸ symbols matching line status. Prompts to run
-              /line-rebase when terminal station has unmerged commits.
+              /line-rebase when terminal station has unpicked commits.
               No external dependencies.
   rebase      Deterministic stash → rebase → unstash from the terminal station
               branch onto the watched branch. Must be run from the watched
