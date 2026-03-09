@@ -64,7 +64,9 @@ var autoRebaseHookCmd = &cobra.Command{
 			return nil
 		}
 
-		r := rebase.Run(".", cfg)
+		r := rebase.Run(".", cfg, rebase.Options{
+			LeaveConflicts: cfg.Settings.AutoResolve,
+		})
 
 		// Write the marker regardless of outcome to avoid re-attempting.
 		_ = state.WriteRebasePrompted(".", terminalRef)
@@ -78,6 +80,9 @@ var autoRebaseHookCmd = &cobra.Command{
 		}
 
 		if r.Conflict {
+			if cfg.Settings.AutoResolve {
+				return printConflictBlockJSON(r, terminalBranch)
+			}
 			return printBlockJSON(fmt.Sprintf(
 				"Auto-rebase onto %s had conflicts. Run `line rebase` manually to resolve.",
 				terminalBranch,
@@ -87,6 +92,18 @@ var autoRebaseHookCmd = &cobra.Command{
 		// StashConflict, NothingToDo, or error — exit silently.
 		return nil
 	},
+}
+
+func printConflictBlockJSON(r rebase.Result, terminalBranch string) error {
+	msg := fmt.Sprintf("Auto-rebase onto %s has conflicts.", terminalBranch)
+	if len(r.ConflictFiles) > 0 {
+		msg += fmt.Sprintf(" Conflicted files: %s.", strings.Join(r.ConflictFiles, ", "))
+	}
+	msg += " To resolve: edit the conflicted files, then git add <resolved-files>, then git rebase --continue."
+	if r.Stashed {
+		msg += " After resolving, run git stash pop to restore your WIP."
+	}
+	return printBlockJSON(msg)
 }
 
 func printBlockJSON(reason string) error {

@@ -2,10 +2,17 @@ package rebase
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/re-cinq/assembly-line/internal/config"
 	"github.com/re-cinq/assembly-line/internal/git"
 )
+
+// Options controls rebase behavior.
+type Options struct {
+	LeaveConflicts bool
+}
 
 // Result describes the outcome of a rebase operation.
 type Result struct {
@@ -13,15 +20,23 @@ type Result struct {
 	ChangedFiles  []string
 	NothingToDo   bool
 	Conflict      bool
+	ConflictFiles []string
+	Stashed       bool
 	StashConflict bool
 	Error         error
 }
 
 // Run performs a deterministic stash → rebase → unstash onto the terminal
-// station branch. It never auto-resolves conflicts.
-func Run(dir string, cfg *config.Config) Result {
+// station branch. By default conflicts are aborted; with LeaveConflicts the
+// rebase is left in progress with conflict markers in the working directory.
+func Run(dir string, cfg *config.Config, opts Options) Result {
 	if len(cfg.Stations) == 0 {
 		return Result{NothingToDo: true}
+	}
+
+	// Guard: refuse to run if a rebase is already in progress.
+	if rebaseInProgress(dir) {
+		return Result{Error: fmt.Errorf("rebase already in progress")}
 	}
 
 	// Verify we're on the watched branch — rebasing any other branch
@@ -71,7 +86,16 @@ func Run(dir string, cfg *config.Config) Result {
 
 	// Rebase onto terminal station.
 	if err := git.Rebase(dir, terminalBranch); err != nil {
-		// Conflict — abort rebase, restore stash, report.
+		if opts.LeaveConflicts {
+			// Leave git in mid-rebase state with conflict markers.
+			files, _ := git.ConflictedFiles(dir)
+			return Result{
+				Conflict:      true,
+				ConflictFiles: files,
+				Stashed:       dirty,
+			}
+		}
+		// Default: abort rebase, restore stash, report.
 		_ = git.RebaseAbort(dir)
 		if dirty {
 			_ = git.StashPop(dir)
@@ -96,4 +120,14 @@ func Run(dir string, cfg *config.Config) Result {
 		Rebased:      true,
 		ChangedFiles: files,
 	}
+}
+
+// rebaseInProgress returns true if .git/rebase-merge or .git/rebase-apply exists.
+func rebaseInProgress(dir string) bool {
+	for _, name := range []string{"rebase-merge", "rebase-apply"} {
+		if info, err := os.Stat(filepath.Join(dir, ".git", name)); err == nil && info.IsDir() {
+			return true
+		}
+	}
+	return false
 }

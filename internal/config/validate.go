@@ -35,5 +35,9 @@ func Validate(cfg *Config) []string {
 		}
 	}
 
+	if cfg.Settings.AutoResolve && !cfg.Settings.AutoRebase {
+		errs = append(errs, "settings.auto_resolve: has no effect without auto_rebase: true")
+	}
+
 	return errs
 }

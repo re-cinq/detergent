@@ -9,6 +9,7 @@ The intention is that rather than expecting an agent to remember to do various c
 - **CFG-1**: The tool is configured with YAML. All commands assume this is `line.yaml`; if they need reference to the config they take a `-p` or `--path` command.
 - **CFG-2**: A Git branch to watch must be configured (`watches`).
 - **CFG-3**: `settings.auto_rebase` (bool, default false) enables the PostToolUse auto-rebase hook.
+- **CFG-4**: `settings.auto_resolve` (bool, default false) — when true and `auto_rebase` is true, rebase conflicts are left for agent resolution instead of aborting.
 
 - Example:
 
@@ -128,12 +129,13 @@ The intention is that rather than expecting an agent to remember to do various c
 ### `line rebase`
 
 - **REB-1**: Deterministic stash → rebase → unstash onto the terminal station branch. Must be on the watched branch; refuses to run otherwise.
-- **REB-2**: On rebase conflict: abort, restore stash, report failure. Never auto-resolve.
+- **REB-2**: On rebase conflict: abort, restore stash, report failure. Never auto-resolve. With `--leave-conflicts`, the abort is skipped and conflicts are left in the working directory.
 - **REB-3**: Reports list of changed files after successful rebase.
+- **REB-4**: `--leave-conflicts` flag leaves git in mid-rebase state with conflict markers. Output lists conflicted files and step-by-step resolution instructions. If a stash was created, instructions include the final `git stash pop` step.
 
 ### `line auto-rebase-hook`
 
-- **HOOK-1**: PostToolUse and Stop hook. When `auto_rebase: true` and terminal station has unpicked commits, performs deterministic rebase and reports changed files to Claude via `decision: block`.
+- **HOOK-1**: PostToolUse and Stop hook. When `auto_rebase: true` and terminal station has unpicked commits, performs deterministic rebase and reports changed files to Claude via `decision: block`. When `auto_resolve: true` and rebase conflicts, leaves conflicts in working directory and reports conflicted files with resolution instructions via `decision: block`.
 - **HOOK-2**: Dedup via `.line/rebase-prompted` marker — does not re-attempt for the same terminal ref.
 - **HOOK-3**: Exits silently when: no config, `auto_rebase: false`, no stations, no unpicked commits, already attempted for current ref, or a line run is in progress.
 - **HOOK-4**: `line clear` removes the rebase-prompted marker.

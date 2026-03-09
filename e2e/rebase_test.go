@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"os"
 	"path/filepath"
 
 	lineGit "github.com/re-cinq/assembly-line/internal/git"
@@ -256,6 +257,89 @@ stations:
 
 		// No lingering rebase state.
 		noRebaseInProgress(dir)
+	})
+
+	It("--leave-conflicts leaves mid-rebase state with conflict markers [REB-4]", func() {
+		setupStationBranches(dir)
+
+		// Station modifies conflict.txt on the terminal branch.
+		git(dir, "checkout", lineGit.StationBranchName("cleanup"))
+		writeFile(dir, "conflict.txt", "station version\n")
+		git(dir, "add", ".")
+		git(dir, "commit", "-m", "[skip line] add conflict.txt")
+		git(dir, "checkout", "master")
+
+		// Master also adds conflict.txt with different content.
+		writeFile(dir, "conflict.txt", "master version\n")
+		git(dir, "add", ".")
+		git(dir, "commit", "-m", "add conflict.txt on master")
+
+		out, err := line(dir, "rebase", "--leave-conflicts")
+		Expect(err).To(HaveOccurred())
+
+		// Git should be in mid-rebase state.
+		Expect(filepath.Join(dir, ".git", "rebase-merge")).To(BeADirectory())
+
+		// Output lists conflicted files.
+		Expect(out).To(ContainSubstring("conflict.txt"))
+
+		// Output includes resolution instructions.
+		Expect(out).To(ContainSubstring("git add"))
+		Expect(out).To(ContainSubstring("git rebase --continue"))
+	})
+
+	It("--leave-conflicts with dirty tree mentions stash and stash entry exists [REB-4]", func() {
+		setupStationBranches(dir)
+
+		// Create conflict on terminal branch.
+		git(dir, "checkout", lineGit.StationBranchName("cleanup"))
+		writeFile(dir, "conflict.txt", "station version\n")
+		git(dir, "add", ".")
+		git(dir, "commit", "-m", "[skip line] add conflict.txt")
+		git(dir, "checkout", "master")
+
+		// Master also adds conflict.txt.
+		writeFile(dir, "conflict.txt", "master version\n")
+		git(dir, "add", ".")
+		git(dir, "commit", "-m", "add conflict.txt on master")
+
+		// Dirty working tree.
+		writeFile(dir, "code.go", "precious WIP\n")
+
+		out, err := line(dir, "rebase", "--leave-conflicts")
+		Expect(err).To(HaveOccurred())
+
+		// Output mentions stash.
+		Expect(out).To(ContainSubstring("git stash pop"))
+
+		// Stash entry exists (was not popped).
+		stashList := git(dir, "stash", "list")
+		Expect(stashList).To(ContainSubstring("line-rebase: stashing WIP"))
+	})
+
+	It("--leave-conflicts with no conflict works normally [REB-4]", func() {
+		setupStationBranches(dir)
+
+		out := lineOK(dir, "rebase", "--leave-conflicts")
+
+		// Normal success — flag is a no-op when there's no conflict.
+		Expect(out).To(ContainSubstring("Rebased onto line/stn/cleanup"))
+		Expect(out).To(ContainSubstring("review.txt"))
+		Expect(out).To(ContainSubstring("cleanup.txt"))
+
+		// No lingering rebase state.
+		noRebaseInProgress(dir)
+	})
+
+	It("errors when rebase already in progress [REB-4]", func() {
+		setupStationBranches(dir)
+
+		// Simulate a rebase in progress by creating the marker directory.
+		Expect(os.MkdirAll(filepath.Join(dir, ".git", "rebase-merge"), 0o755)).To(Succeed())
+
+		out, err := line(dir, "rebase", "--leave-conflicts")
+		Expect(err).To(HaveOccurred())
+		Expect(out).To(ContainSubstring("rebase already in progress"))
 	})
 
 	It("refuses to run when not on the watched branch [REB-1]", func() {

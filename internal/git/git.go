@@ -118,6 +118,18 @@ func IsDirty(dir string) (bool, error) {
 	return out != "", nil
 }
 
+// ConflictedFiles returns the list of files with unresolved merge conflicts.
+func ConflictedFiles(dir string) ([]string, error) {
+	out, err := Run(dir, "diff", "--name-only", "--diff-filter=U")
+	if err != nil {
+		return nil, err
+	}
+	if out == "" {
+		return nil, nil
+	}
+	return strings.Split(out, "\n"), nil
+}
+
 // DiffFiles returns the list of changed file paths between two refs.
 func DiffFiles(dir, from, to string) ([]string, error) {
 	out, err := Run(dir, "diff", "--name-only", from, to)

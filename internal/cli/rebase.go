@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var leaveConflicts bool
+
 var rebaseCmd = &cobra.Command{
 	Use:   "rebase",
 	Short: "Rebase onto the terminal station branch to pick up line changes",
@@ -19,7 +21,9 @@ var rebaseCmd = &cobra.Command{
 			return err
 		}
 
-		r := rebase.Run(".", cfg)
+		r := rebase.Run(".", cfg, rebase.Options{
+			LeaveConflicts: leaveConflicts,
+		})
 
 		if r.Error != nil {
 			return r.Error
@@ -29,6 +33,9 @@ var rebaseCmd = &cobra.Command{
 			return nil
 		}
 		if r.Conflict {
+			if leaveConflicts {
+				return printConflictInstructions(r)
+			}
 			fmt.Println("Rebase aborted due to conflicts. Working state preserved.")
 			return fmt.Errorf("rebase conflict")
 		}
@@ -49,6 +56,24 @@ var rebaseCmd = &cobra.Command{
 	},
 }
 
+func printConflictInstructions(r rebase.Result) error {
+	fmt.Println("Rebase paused — conflicts need resolution.")
+	if len(r.ConflictFiles) > 0 {
+		fmt.Printf("Conflicted files: %s\n", strings.Join(r.ConflictFiles, ", "))
+	}
+	fmt.Println()
+	fmt.Println("To resolve:")
+	fmt.Println("  1. Edit the conflicted files to resolve the conflict markers")
+	fmt.Println("  2. git add <resolved-files>")
+	fmt.Println("  3. git rebase --continue")
+	if r.Stashed {
+		fmt.Println("  4. git stash pop")
+	}
+	return fmt.Errorf("rebase conflict (left for resolution)")
+}
+
 func init() {
+	rebaseCmd.Flags().BoolVar(&leaveConflicts, "leave-conflicts", false,
+		"Leave git in mid-rebase state with conflict markers instead of aborting")
 	rootCmd.AddCommand(rebaseCmd)
 }

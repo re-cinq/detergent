@@ -20,8 +20,12 @@ This performs a safe stash → rebase → unstash sequence. It will:
 - Restore stashed work
 - Report changed files on success, or abort cleanly on conflict
 
+## Options
+
+- `--leave-conflicts`: Instead of aborting on conflict, leave git in mid-rebase state with conflict markers in the working directory. Output lists conflicted files and step-by-step resolution instructions. Use this when you want to resolve conflicts manually or let an agent resolve them.
+
 ## Safety guarantees
 
 - **No work is ever lost**: WIP is always stashed before any branch operations
 - **No retriggering**: Station commits contain `[skip line]` which prevents `line run` from retriggering (RUN-9, SKL-2)
-- **No auto-resolution**: If the rebase has conflicts, it aborts and restores your working state
+- **No auto-resolution**: If the rebase has conflicts, it aborts and restores your working state (unless `--leave-conflicts` is used)

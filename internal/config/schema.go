@@ -38,6 +38,16 @@ func Schema() []byte {
 						"type":        "string",
 						"description": "The Git branch to watch for new commits (e.g. \"main\" or \"master\"). When a commit lands on this branch, the line is triggered.",
 					},
+					"auto_rebase": map[string]any{
+						"type":        "boolean",
+						"default":     false,
+						"description": "Enable the PostToolUse auto-rebase hook. When true, automatically rebases onto the terminal station branch when changes are ready.",
+					},
+					"auto_resolve": map[string]any{
+						"type":        "boolean",
+						"default":     false,
+						"description": "When true and auto_rebase is true, rebase conflicts are left for agent resolution instead of aborting. The hook reports conflicted files with resolution instructions.",
+					},
 				},
 			},
 			"gates": map[string]any{

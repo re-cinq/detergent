@@ -22,6 +22,7 @@ func tempRepo() string {
 	git(dir, "init")
 	git(dir, "config", "user.email", "test@test.com")
 	git(dir, "config", "user.name", "Test")
+	git(dir, "config", "commit.gpgsign", "false")
 	// Create an initial commit so HEAD exists
 	writeFile(dir, "README.md", "# test\n")
 	git(dir, "add", ".")

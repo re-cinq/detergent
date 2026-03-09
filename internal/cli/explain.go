@@ -60,15 +60,22 @@ COMMANDS
   rebase      Deterministic stash → rebase → unstash from the terminal station
               branch onto the watched branch. Must be run from the watched
               branch. On conflict: aborts, restores stash, reports failure.
-              Reports changed files on success.
+              Reports changed files on success. Use --leave-conflicts to leave
+              git in mid-rebase state with conflict markers instead of aborting.
+              Output lists conflicted files and step-by-step resolution
+              instructions. If a stash was created, instructions include the
+              final git stash pop step.
   auto-rebase-hook
               PostToolUse and Stop hook. When auto_rebase is true and the
               terminal station has unpicked commits, performs a rebase and
-              reports changed files. Deduplicates attempts — does not
-              re-attempt for the same terminal ref. Exits silently when:
-              no config, auto_rebase is false, no stations, no unpicked
-              commits, already attempted for the current ref, or a line
-              run is in progress. line clear removes the dedup marker.
+              reports changed files. When auto_resolve is true and rebase
+              conflicts, leaves conflicts in working directory and reports
+              conflicted files with resolution instructions via decision:
+              block. Deduplicates attempts — does not re-attempt for the
+              same terminal ref. Exits silently when: no config, auto_rebase
+              is false, no stations, no unpicked commits, already attempted
+              for the current ref, or a line run is in progress. line clear
+              removes the dedup marker.
   schema      Output the YAML configuration schema to stdout.
   validate    Validate line.yaml and print specific errors, or "valid".
   explain     Print this reference (what you are reading now).
@@ -95,6 +102,7 @@ CONFIG FORMAT (line.yaml)
   settings:
     watches: main                                # Git branch to watch (required)
     auto_rebase: false                           # enable auto-rebase hook (optional)
+    auto_resolve: false                          # leave conflicts for agent resolution (optional)
 
   gates:
     - name: lint                                 # gate name (required)

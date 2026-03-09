@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	lineGit "github.com/re-cinq/assembly-line/internal/git"
 	. "github.com/onsi/ginkgo/v2"
@@ -29,6 +30,24 @@ var _ = Describe("line auto-rebase-hook", func() {
 settings:
   watches: master
   auto_rebase: `+ar+`
+
+stations:
+  - name: review
+    prompt: "Review code"
+  - name: cleanup
+    prompt: "Clean up code"
+`)
+	}
+
+	writeAutoResolveConfig := func(dir string) {
+		writeConfig(dir, `agent:
+  command: echo
+  args: ["hello"]
+
+settings:
+  watches: master
+  auto_rebase: true
+  auto_resolve: true
 
 stations:
   - name: review
@@ -140,5 +159,74 @@ stations:
 		// No line.yaml in the repo
 		out := lineOK(dir, "auto-rebase-hook")
 		Expect(out).To(BeEmpty())
+	})
+
+	// setupConflict creates station branches and then introduces a conflicting
+	// file on both master and the terminal station branch.
+	setupConflict := func(dir string) {
+		setupStationBranches(dir)
+
+		// Station modifies conflict.txt on the terminal branch.
+		cleanupBranch := lineGit.StationBranchName("cleanup")
+		git(dir, "checkout", cleanupBranch)
+		writeFile(dir, "conflict.txt", "station version\n")
+		git(dir, "add", ".")
+		git(dir, "commit", "-m", "[skip line] add conflict.txt")
+		git(dir, "checkout", "master")
+
+		// Master also adds conflict.txt with different content.
+		writeFile(dir, "conflict.txt", "master version\n")
+		git(dir, "add", ".")
+		git(dir, "commit", "-m", "add conflict.txt on master")
+	}
+
+	It("auto_resolve: true outputs block JSON with conflicted file list [HOOK-1]", func() {
+		writeAutoResolveConfig(dir)
+		setupConflict(dir)
+
+		out := lineOK(dir, "auto-rebase-hook")
+
+		var result map[string]string
+		Expect(json.Unmarshal([]byte(out), &result)).To(Succeed())
+		Expect(result["decision"]).To(Equal("block"))
+		Expect(result["reason"]).To(ContainSubstring("conflict.txt"))
+		Expect(result["reason"]).To(ContainSubstring("git add"))
+		Expect(result["reason"]).To(ContainSubstring("git rebase --continue"))
+	})
+
+	It("auto_resolve: false aborts cleanly on conflict [HOOK-1]", func() {
+		writeAutoRebaseConfig(dir, true)
+		setupConflict(dir)
+
+		headBefore := git(dir, "rev-parse", "HEAD")
+		out := lineOK(dir, "auto-rebase-hook")
+
+		var result map[string]string
+		Expect(json.Unmarshal([]byte(out), &result)).To(Succeed())
+		Expect(result["decision"]).To(Equal("block"))
+		Expect(result["reason"]).To(ContainSubstring("conflict"))
+
+		// HEAD unchanged — rebase was aborted.
+		Expect(git(dir, "rev-parse", "HEAD")).To(Equal(headBefore))
+
+		// No lingering rebase state.
+		Expect(filepath.Join(dir, ".git", "rebase-merge")).NotTo(BeADirectory())
+		Expect(filepath.Join(dir, ".git", "rebase-apply")).NotTo(BeADirectory())
+	})
+
+	It("dedup marker is written even when conflicts are left [HOOK-2]", func() {
+		writeAutoResolveConfig(dir)
+		setupConflict(dir)
+
+		out1 := lineOK(dir, "auto-rebase-hook")
+		Expect(out1).NotTo(BeEmpty())
+
+		// Abort the rebase so we can test dedup (git won't allow another rebase
+		// while one is in progress, but dedup should fire first).
+		git(dir, "rebase", "--abort")
+
+		// Second call for the same terminal ref should be silent (dedup).
+		out2 := lineOK(dir, "auto-rebase-hook")
+		Expect(out2).To(BeEmpty())
 	})
 })

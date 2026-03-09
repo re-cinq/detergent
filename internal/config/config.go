@@ -25,8 +25,9 @@ type Station struct {
 }
 
 type Settings struct {
-	Watches    string `yaml:"watches"`
-	AutoRebase bool   `yaml:"auto_rebase"`
+	Watches     string `yaml:"watches"`
+	AutoRebase  bool   `yaml:"auto_rebase"`
+	AutoResolve bool   `yaml:"auto_resolve"`
 }
 
 type Config struct {
